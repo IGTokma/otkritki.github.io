@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конструктор Живой Открытки</title>
+    <link rel="stylesheet" href="builder.css">
+</head>
+<body>
+
+    <!-- ЭКРАН 1: АВТОРИЗАЦИЯ -->
+    <div id="screen-auth" class="screen">
+        <div class="auth-box">
+            <h2>Вход в профиль 💌</h2>
+            <input type="text" id="usernameInput" placeholder="Твое имя или никнейм">
+            <button class="generate-btn" style="margin-top: 5px;" onclick="login()">Войти / Начать</button>
+        </div>
+    </div>
+
+    <!-- ЭКРАН 2: ДАШБОРД (ВЫБОР ТЕМЫ) -->
+    <div id="screen-dashboard" class="screen">
+        <div class="dashboard-header">
+            <div style="font-weight: bold; font-size: 18px;">Привет, <span id="userNameDisplay">Имя</span>! 👋</div>
+            <button class="logout-btn" onclick="logout()">Выйти</button>
+        </div>
+
+        <h3 style="color: #333; margin-top: 0; align-self: flex-start;">Для кого создаем открытку?</h3>
+        <!-- Сетка плиток (Темы) -->
+        <div class="themes-grid" id="themesContainer"></div>
+
+        <!-- Секция сохраненных открыток -->
+        <div class="saved-cards-section">
+            <h3 style="color: #333; margin-top: 0;">Мои открытки 🗂️</h3>
+            <div id="savedCardsContainer">
+                <!-- Сюда скрипт вставит купленные открытки -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ЭКРАН 3: КОНСТРУКТОР -->
+    <div id="screen-builder" class="screen">
+        <button class="nav-btn" style="background: #95a5a6; margin-bottom: 15px; align-self: flex-start;" onclick="showScreen('screen-dashboard')">⬅ Назад к темам</button>
+
+        <div class="builder-container">
+            <div class="header">
+                <button class="nav-btn" id="prevBtn" onclick="prevSlide()">&lt;</button>
+                <span id="slideCounter">Карточка 1 / 1</span>
+                <button class="nav-btn" id="nextBtn" onclick="nextSlide()">&gt;</button>
+                <button class="add-btn" onclick="addSlide()">+ Добавить</button>
+            </div>
+
+            <div class="card-editor">
+                <!-- Поле названия (будет видно только на 1-м слайде) -->
+                <input type="text" id="cardNameInput" placeholder="Название открытки (напр: Маме)" oninput="saveCardName()" style="border: 2px solid #ff69b4; background: #fff0f5;">
+
+                <input type="text" id="headerInput" placeholder="Заголовок (например: Привет!)" oninput="saveCurrentSlide()">
+                
+                <div class="image-selector" onclick="openGifModal()">
+                    <span id="imagePlaceholderText">Нажми, чтобы выбрать GIF</span>
+                    <img id="imagePreview" src="" alt="Выбранная гифка" style="display: none;">
+                </div>
+
+                <textarea id="messageInput" placeholder="Основной текст сообщения..." oninput="saveCurrentSlide()"></textarea>
+
+                <!-- Кнопка удаления -->
+                <button class="delete-btn" id="deleteSlideBtn" onclick="deleteSlide()">🗑️ Удалить эту карточку</button>
+            </div>
+
+            <button class="generate-btn" onclick="finishCard()">Готово! (Перейти к отправке)</button>
+
+            <!-- Модалка ГИФОК -->
+            <div class="gif-modal" id="gifModal">
+                <div class="close-modal" onclick="closeGifModal()">✖ Закрыть</div>
+                <h3 style="margin-top: 0;">Выбери категорию:</h3>
+                <div id="categoryTags" class="tags-container"></div>
+                <div class="custom-url-box">
+                    <input type="text" id="customUrlInput" placeholder="Или вставь свою ссылку на картинку...">
+                    <button onclick="useCustomUrl()">Ок</button>
+                </div>
+                <div class="gif-grid" id="gifResults"></div>
+            </div>
+
+            <!-- Модалка ФИНАЛА (Оплата/Скачивание) -->
+            <div class="gif-modal" id="finishModal">
+                <div class="close-modal" onclick="closeFinishModal()">✖ Закрыть</div>
+                
+                <div id="paywallStep">
+                    <h2 style="text-align: center; margin-top:0;">Открытка готова! 🎉</h2>
+                    <p style="text-align: center; color: #555;">Оплатите, чтобы скачать или отправить.</p>
+                    <button class="generate-btn" style="background: #f1c40f; color: #333;" onclick="simulatePayment()">Оплатить 99₽ (Заглушка)</button>
+                </div>
+
+                <div id="actionStep" style="display: none; text-align: center;">
+                    <h2 style="margin-top:0;">Успешно! 💖</h2>
+                    <div style="display: flex; gap: 10px; flex-direction: column;">
+                        <button class="generate-btn" style="margin-top: 0; background: #25D366;" onclick="shareCard()">📲 Отправить в чат</button>
+                        <button class="generate-btn" style="margin-top: 0; background: #3498db;" onclick="downloadCard()">📥 Скачать файл</button>
+                        <button class="generate-btn" style="margin-top: 0; background: #95a5a6;" onclick="goToDashboard()">🏠 На главную</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="gifs.js" defer></script>
+    <script src="builder.js" defer></script>
+</body>
+</html>
