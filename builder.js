@@ -14,11 +14,12 @@ const cardThemes = [
     { id: 'neutral', name: 'Просто так ✨', bg: '#f0f2f5' }
 ];
 
-window.onload = () => {
+// Гарантированный запуск при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     renderThemes();
     renderCategoryButtons();
-};
+});
 
 // --- 1. АВТОРИЗАЦИЯ И ЭКРАНЫ ---
 function showScreen(screenId) {
@@ -433,11 +434,3 @@ function goToDashboard() {
     closeFinishModal();
     showScreen('screen-dashboard');
 }
-
-#slideCounter {
-    font-size: 13px; /* Делаем шрифт меньше (стандартный около 16px) */
-    color: #666; /* Чуть приглушаем цвет, чтобы не отвлекал от кнопок */
-    text-align: center;
-    flex-grow: 1; /* Чтобы счетчик ровно стоял по центру между кнопками */
-}
-

@@ -74,6 +74,12 @@ body {
 }
 
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+#slideCounter {
+    font-size: 13px; /* Делаем шрифт меньше (стандартный около 16px) */
+    color: #666; /* Чуть приглушаем цвет, чтобы не отвлекал от кнопок */
+    text-align: center;
+    flex-grow: 1; /* Чтобы счетчик ровно стоял по центру между кнопками */
+}
 .nav-btn, .add-btn { color: white; border: none; padding: 6px 12px; border-radius: 10px; cursor: pointer; font-weight: bold; }
 .nav-btn { background: #bdc3c7; }
 .nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -137,9 +143,3 @@ textarea { resize: vertical; min-height: 120px; }
     100% { opacity: 1; transform: translateY(0); }
 }
 
-#slideCounter {
-    font-size: 13px; /* Делаем шрифт меньше (стандартный около 16px) */
-    color: #666; /* Чуть приглушаем цвет, чтобы не отвлекал от кнопок */
-    text-align: center;
-    flex-grow: 1; /* Чтобы счетчик ровно стоял по центру между кнопками */
-}
