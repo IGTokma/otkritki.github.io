@@ -74,10 +74,15 @@ body {
 }
 
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.nav-btn, .add-btn { color: white; border: none; padding: 8px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+.nav-btn, .add-btn { color: white; border: none; padding: 6px 12px; border-radius: 10px; cursor: pointer; font-weight: bold; }
 .nav-btn { background: #bdc3c7; }
 .nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.add-btn { background: #2ecc71; }
+.add-btn { 
+    background: #2ecc71; 
+    padding: 6px 10px; /* Уменьшаем отступы внутри кнопки (было 8px 15px) */
+    font-size: 13px;   /* Уменьшаем размер самого текста */
+    margin-left: 5px;  /* Небольшой отступ слева, чтобы не прилипала к стрелочке */
+}
 .delete-btn {
     background: #e74c3c; color: white; border: none; padding: 12px; border-radius: 10px;
     font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; transition: 0.2s;
@@ -130,4 +135,11 @@ textarea { resize: vertical; min-height: 120px; }
 @keyframes fadeInStandard {
     0% { opacity: 0; transform: translateY(10px); }
     100% { opacity: 1; transform: translateY(0); }
+}
+
+#slideCounter {
+    font-size: 13px; /* Делаем шрифт меньше (стандартный около 16px) */
+    color: #666; /* Чуть приглушаем цвет, чтобы не отвлекал от кнопок */
+    text-align: center;
+    flex-grow: 1; /* Чтобы счетчик ровно стоял по центру между кнопками */
 }

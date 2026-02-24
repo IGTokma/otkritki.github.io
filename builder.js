@@ -434,3 +434,10 @@ function goToDashboard() {
     showScreen('screen-dashboard');
 }
 
+#slideCounter {
+    font-size: 13px; /* Делаем шрифт меньше (стандартный около 16px) */
+    color: #666; /* Чуть приглушаем цвет, чтобы не отвлекал от кнопок */
+    text-align: center;
+    flex-grow: 1; /* Чтобы счетчик ровно стоял по центру между кнопками */
+}
+
