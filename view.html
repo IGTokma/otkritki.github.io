@@ -74,14 +74,22 @@
         // 2. ЛОГИКА ЧТЕНИЯ ССЫЛКИ
         try {
             const urlParams = new URLSearchParams(window.location.search);
-            const rawData = urlParams.get('data');
+            const compressed = urlParams.get('c'); // Ищем короткий параметр 'c'
             
-            if (rawData) {
-                // Расшифровываем ссылку
-                const cardData = JSON.parse(decodeURIComponent(atob(rawData)));
+            if (compressed) {
+                // 1. Распаковываем архив
+                const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
+                const shortData = JSON.parse(decompressed);
                 
-                // Перезаписываем весь документ сгенерированной открыткой
-                const finalHtml = generateHtmlString(cardData.bg, cardData.slides);
+                // 2. Восстанавливаем нормальные названия ключей для твоей функции
+                const restoredSlides = shortData.s.map(slide => ({
+                    header: slide.h,
+                    img: slide.i,
+                    message: slide.m
+                }));
+                
+                // 3. Генерируем открытку
+                const finalHtml = generateHtmlString(shortData.b, restoredSlides);
                 document.open();
                 document.write(finalHtml);
                 document.close();

@@ -395,21 +395,24 @@ function downloadSavedCard(cardId) {
 
 // Кнопка отправки напрямую
 async function shareCard() {
-    // 1. Собираем данные: фон и массив слайдов (всё то, что ты передавал в generateHtmlString)
-    const cardData = {
-        bg: currentThemeBg,
-        slides: slides
+    // 1. Укорачиваем названия ключей для экономии места
+    const shortData = {
+        b: currentThemeBg,
+        s: slides.map(slide => ({
+            h: slide.header,
+            i: slide.img,
+            m: slide.message
+        }))
     };
 
-    // 2. Превращаем в строку и кодируем (чтобы русские буквы и эмодзи не сломали URL)
-    const encodedData = btoa(encodeURIComponent(JSON.stringify(cardData)));
+    // 2. Сжимаем в очень плотную строку (магия LZ-String)
+    const compressedData = LZString.compressToEncodedURIComponent(JSON.stringify(shortData));
     
-    // 3. Формируем ссылку на страницу просмотра
-    // Эта логика сама найдет правильный путь до файла view.html
+    // 3. Формируем короткую ссылку (параметр теперь называется 'c')
     const baseUrl = window.location.origin + window.location.pathname.replace(/[^\/]+$/, '');
-    const shareUrl = `${baseUrl}view.html?data=${encodedData}`;
+    const shareUrl = `${baseUrl}view.html?c=${compressedData}`;
 
-    // 4. Отправляем ссылку вместо файла
+    // 4. Отправляем
     if (navigator.share) {
         try { 
             await navigator.share({ 
@@ -420,7 +423,6 @@ async function shareCard() {
         } 
         catch (err) { console.log('Отмена отправки', err); }
     } else {
-        // Запасной вариант для ПК
         navigator.clipboard.writeText(shareUrl);
         alert("Ссылка скопирована! Отправь её другу: \n\n" + shareUrl);
     }
@@ -431,3 +433,4 @@ function goToDashboard() {
     closeFinishModal();
     showScreen('screen-dashboard');
 }
+
