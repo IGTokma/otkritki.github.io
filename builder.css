@@ -143,3 +143,15 @@ textarea { resize: vertical; min-height: 120px; }
     100% { opacity: 1; transform: translateY(0); }
 }
 
+/* --- НОВЫЕ КНОПКИ ДЛЯ СОХРАНЕННЫХ ОТКРЫТОК --- */
+.saved-card-actions {
+    display: flex; gap: 8px; align-items: center;
+}
+.icon-btn {
+    background: #f0f2f5; border: none; padding: 8px 12px;
+    border-radius: 10px; cursor: pointer; font-size: 16px;
+    transition: 0.2s; display: flex; align-items: center; justify-content: center;
+}
+.icon-btn:hover { background: #e4e6e9; transform: scale(1.05); }
+.delete-icon { background: #fceceb; }
+.delete-icon:hover { background: #fadbd8; }

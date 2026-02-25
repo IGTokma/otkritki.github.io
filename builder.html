@@ -25,6 +25,8 @@
             <button class="logout-btn" onclick="logout()">Выйти</button>
         </div>
 
+        <div id="freeCardsDisplay" style="display: none; background: #e8f8f5; color: #16a085; padding: 12px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-size: 15px; border: 1px dashed #1abc9c; width: 100%; box-sizing: border-box;"></div>
+
         <h3 style="color: #333; margin-top: 0; align-self: flex-start;">Для кого создаем открытку?</h3>
         <!-- Сетка плиток (Темы) -->
         <div class="themes-grid" id="themesContainer"></div>
@@ -43,6 +45,31 @@
         <button class="nav-btn" style="background: #95a5a6; margin-bottom: 15px; align-self: flex-start;" onclick="showScreen('screen-dashboard')">⬅ Назад к темам</button>
 
         <div class="builder-container">
+            <div class="gif-modal" id="customThemeModal"> <!-- Кастомная тема -->
+                <div class="close-modal" onclick="closeCustomThemeModal()">✖ Закрыть</div>
+                <h3 style="margin-top: 0;">Свой дизайн ✨</h3>
+                
+                <div class="card-editor" style="gap: 10px;">
+                    <label style="font-weight: bold; color: #555;">Кому открытка?</label>
+                    <input type="text" id="customThemeName" placeholder="Например: Любимому коту 🐈">
+                    
+                    <label style="font-weight: bold; color: #555; margin-top: 10px;">Музыка фона</label>
+                    <button id="customMusicBtn" style="width: 100%; background: #3498db; color: white; padding: 12px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;" onclick="openMusicModal()">🎵 Выбрать музыку</button>
+                    <button class="generate-btn" style="margin-top: 20px;" onclick="startCustomTheme()">Создать ➔</button>
+                    
+                    <label style="font-weight: bold; color: #555; margin-top: 10px;">Эмодзи для фона (1-2 шт)</label>
+                    <input type="text" id="customThemeEmoji" placeholder="Например: 🐾" maxlength="4">
+                    
+                    <label style="font-weight: bold; color: #555; margin-top: 10px;">Цвет фона</label>
+                    <div style="display: flex; gap: 15px; align-items: center; background: #fff0f5; padding: 10px; border-radius: 10px;">
+                        <input type="color" id="customThemeColor" value="#ffb6c1" style="width: 50px; height: 50px; border: none; border-radius: 10px; cursor: pointer;">
+                        <span id="customColorHex" style="color: #888; font-family: monospace; font-size: 16px;">#ffb6c1</span>
+                    </div>
+                    
+                    <button class="generate-btn" style="margin-top: 20px;" onclick="startCustomTheme()">Создать ➔</button>
+                </div>
+            </div>
+
             <div class="header">
                 <button class="nav-btn" id="prevBtn" onclick="prevSlide()">&lt;</button>
                 <span id="slideCounter">Карточка 1 / 1</span>
@@ -53,7 +80,7 @@
             <div class="card-editor">
                 <!-- Поле названия (будет видно только на 1-м слайде) -->
                 <input type="text" id="cardNameInput" placeholder="Название открытки (напр: Маме)" oninput="saveCardName()" style="border: 2px solid #ff69b4; background: #fff0f5;">
-
+                
                 <input type="text" id="headerInput" placeholder="Заголовок (например: Привет!)" oninput="saveCurrentSlide()">
                 
                 <div class="image-selector" onclick="openGifModal()">
@@ -82,13 +109,12 @@
             </div>
 
             <!-- Модалка ФИНАЛА (Оплата/Скачивание) -->
-            <div class="gif-modal" id="finishModal">
-                <div class="close-modal" onclick="closeFinishModal()">✖ Закрыть</div>
-                
+            <div class="gif-modal" id="finishModal" style="z-index: 110;">
                 <div id="paywallStep">
                     <h2 style="text-align: center; margin-top:0;">Открытка готова! 🎉</h2>
                     <p style="text-align: center; color: #555;">Оплатите, чтобы скачать или отправить.</p>
                     <button class="generate-btn" style="background: #f1c40f; color: #333;" onclick="simulatePayment()">Оплатить 99₽ (Заглушка)</button>
+                    <button class="generate-btn" style="background: #95a5a6; margin-top: 10px;" onclick="closeFinishModal()">⬅ Назад к редактированию</button>
                 </div>
 
                 <div id="actionStep" style="display: none; text-align: center;">
@@ -100,10 +126,18 @@
                     </div>
                 </div>
             </div>
+            <div class="gif-modal" id="musicModal" style="z-index: 105;">
+                <div class="close-modal" onclick="closeMusicModal()">✖ Закрыть</div>
+                <h3 style="margin-top: 0;">Выбери настроение 🎵</h3>
+                <div id="musicList" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-bottom: 20px;">
+                    </div>
+            </div>
         </div>
     </div>
 
     <script src="gifs.js" ></script>
-    <script src="builder.js" ></script>
+    <script src="generator.js">
+    </script> <script src="builder.js"></script>
+    
 </body>
 </html>

@@ -1,18 +1,32 @@
 // --- СОСТОЯНИЕ ПРИЛОЖЕНИЯ ---
 let currentUser = null;
 let currentThemeBg = "#f0f2f5";
-let currentCardName = ""; // Название текущей открытки
+let currentThemeEmoji = ""; 
+let currentMusicUrl = ""; // Музыка для текущей открытки
+let customSelectedMusicUrl = ""; // Временная переменная для окна "Свой дизайн"
+let currentCardName = "";
 let slides = [{ header: "", img: "", message: "" }];
 let currentIndex = 0;
 
-const cardThemes = [
-    { id: 'mom', name: 'Любимой Маме 🌸', bg: 'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)' },
-    { id: 'love', name: 'Любимому / Любимой ❤️', bg: 'linear-gradient(to top, #ff0844 0%, #ffb199 100%)' },
-    { id: 'hb', name: 'С Днём Рождения 🎈', bg: 'linear-gradient(120deg, #f6d365 0%, #fda085 100%)' },
-    { id: 'friend', name: 'Для Друга ✌️', bg: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)' },
-    { id: 'sad', name: 'Прости меня 🥺', bg: 'linear-gradient(to top, #accbee 0%, #e7f0fd 100%)' },
-    { id: 'neutral', name: 'Просто так ✨', bg: '#f0f2f5' }
+// НОВОЕ: Наша библиотека музыки
+const musicLibrary = [
+    { name: "Без музыки 🔇", url: "" },
+    { name: "Романтичная (Пианино) 🎹", url: "https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3" },
+    { name: "Веселая (Укулеле) 🌴", url: "https://cdn.pixabay.com/audio/2022/03/15/audio_10672e817a.mp3" },
+    { name: "Грустная (Скрипка) 🎻", url: "https://cdn.pixabay.com/audio/2021/08/09/audio_82472b49df.mp3" }
 ];
+
+// НОВОЕ: Добавляем треки прямо в готовые темы
+const cardThemes = [
+    { id: 'mom', name: 'Любимой Маме 🌸', emoji: '🌸', bg: 'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)', music: musicLibrary[1].url },
+    { id: 'love', name: 'Любимому / Любимой ❤️', emoji: '❤️', bg: 'linear-gradient(to top, #ff0844 0%, #ffb199 100%)', music: musicLibrary[1].url },
+    { id: 'hb', name: 'С Днём Рождения 🎈', emoji: '🎈', bg: 'linear-gradient(120deg, #f6d365 0%, #fda085 100%)', music: musicLibrary[2].url },
+    { id: 'friend', name: 'Для Друга ✌️', emoji: '✌️', bg: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)', music: musicLibrary[2].url },
+    { id: 'sad', name: 'Прости меня 🥺', emoji: '🥺', bg: 'linear-gradient(to top, #accbee 0%, #e7f0fd 100%)', music: musicLibrary[3].url },
+    { id: 'neutral', name: 'Просто так ✨', emoji: '✨', bg: '#f0f2f5', music: "" }
+];
+
+
 
 // Гарантированный запуск при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
@@ -26,10 +40,14 @@ function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
     
-    // Если вернулись в дашборд, возвращаем стандартный фон
     if(screenId === 'screen-dashboard') {
         document.body.style.background = '#f0f2f5';
-        renderSavedCards(); // Обновляем базу при входе в профиль
+        const pattern = document.getElementById('bg-pattern-layer');
+        if (pattern) pattern.remove(); 
+        renderSavedCards(); 
+        
+        // ДОБАВИТЬ ЭТУ СТРОЧКУ: Обновляем текст с бесплатными открытками
+        updateFreeCardsDisplay(); 
     }
 }
 
@@ -62,29 +80,102 @@ function logout() {
 function renderThemes() {
     const container = document.getElementById('themesContainer');
     container.innerHTML = '';
+    
     cardThemes.forEach(theme => {
         const btn = document.createElement('button');
         btn.className = 'theme-tile';
         btn.innerText = theme.name;
         btn.style.background = theme.bg;
-        btn.onclick = () => startBuilder(theme.bg);
+        // Передаем музыку третьим параметром
+        btn.onclick = () => startBuilder(theme.bg, theme.emoji, theme.music);
         container.appendChild(btn);
     });
+
+    const customBtn = document.createElement('button');
+    customBtn.className = 'theme-tile';
+    customBtn.innerHTML = '+ Свой дизайн 🎨';
+    customBtn.style.background = 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)';
+    customBtn.style.color = '#333';
+    customBtn.onclick = () => openCustomThemeModal();
+    container.appendChild(customBtn);
+}
+
+// --- УПРАВЛЕНИЕ КАСТОМНОЙ ТЕМОЙ ---
+function openCustomThemeModal() {
+    startBuilder('#f0f2f5', '', ''); 
+    
+    document.getElementById('customThemeModal').style.display = 'flex';
+    document.getElementById('customThemeName').value = '';
+    document.getElementById('customThemeEmoji').value = '';
+    
+    // Сбрасываем кнопку музыки к начальному виду
+    customSelectedMusicUrl = ""; 
+    const musicBtn = document.getElementById('customMusicBtn');
+    musicBtn.innerText = '🎵 Выбрать музыку';
+    musicBtn.style.background = '#3498db';
+    
+    document.getElementById('customThemeColor').oninput = function() {
+        document.getElementById('customColorHex').innerText = this.value;
+    };
+}
+
+function closeCustomThemeModal() {
+    document.getElementById('customThemeModal').style.display = 'none';
+    // Если передумал создавать свою тему — возвращаем обратно на главный экран
+    showScreen('screen-dashboard'); 
+}
+
+function startCustomTheme() {
+    const name = document.getElementById('customThemeName').value.trim();
+    const emoji = document.getElementById('customThemeEmoji').value.trim();
+    const color = document.getElementById('customThemeColor').value;
+    
+    if (!name) { alert("Пожалуйста, напиши, кому будет эта открытка!"); return; }
+    
+    document.getElementById('customThemeModal').style.display = 'none';
+    
+    // Перезапускаем с цветом, смайлом и ВЫБРАННОЙ музыкой
+    startBuilder(color, emoji, customSelectedMusicUrl); 
+    
+    setTimeout(() => {
+        const nameInput = document.getElementById('cardNameInput');
+        nameInput.value = name;
+        currentCardName = name; 
+    }, 50);
 }
 
 // НАЧАЛО СОЗДАНИЯ (Запрос имени)
 // НАЧАЛО СОЗДАНИЯ
-function startBuilder(bgStyle) {
-    currentCardName = ""; // Сбрасываем старое имя
+function startBuilder(bgStyle, emoji, musicUrl = "") {
+    currentCardName = ""; 
     currentThemeBg = bgStyle;
+    currentThemeEmoji = emoji || ""; 
+    currentMusicUrl = musicUrl; // Сохраняем музыку в память!
+    
     document.body.style.background = bgStyle;
     
-    slides = [{ header: "", img: "", message: "" }];
-    currentIndex = 0;
+    const oldPattern = document.getElementById('bg-pattern-layer');
+    if (oldPattern) oldPattern.remove();
     
-    // Очищаем инпут названия
+    if (currentThemeEmoji) {
+        const pattern = document.createElement('div');
+        pattern.id = 'bg-pattern-layer';
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><text x="40" y="40" font-size="30" text-anchor="middle" dominant-baseline="middle" opacity="0.15">${currentThemeEmoji}</text></svg>`;
+        pattern.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:-1;background-image:url('data:image/svg+xml;utf8,${encodeURIComponent(svg)}')`;
+        document.body.appendChild(pattern);
+    }
+    
+slides = [{ header: "", img: "", message: "" }];
+    currentIndex = 0;
     document.getElementById('cardNameInput').value = '';
     
+    const customModal = document.getElementById('customThemeModal');
+    if (customModal) customModal.style.display = 'none';
+
+    // ДОБАВЛЯЕМ ЭТО: Жесткий сброс финального окна при старте!
+    const finishModal = document.getElementById('finishModal');
+    if (finishModal) finishModal.style.display = 'none';
+
     updateUI();
     showScreen('screen-builder');
 }
@@ -93,8 +184,6 @@ function startBuilder(bgStyle) {
 function renderSavedCards() {
     const container = document.getElementById('savedCardsContainer');
     container.innerHTML = '';
-    
-    // Достаем карточки конкретного пользователя
     let userCards = JSON.parse(localStorage.getItem('otkritka_cards_' + currentUser)) || [];
 
     if (userCards.length === 0) {
@@ -102,7 +191,6 @@ function renderSavedCards() {
         return;
     }
 
-    // Рисуем карточки (от новых к старым)
     userCards.reverse().forEach(card => {
         const div = document.createElement('div');
         div.className = 'saved-card-item';
@@ -111,10 +199,41 @@ function renderSavedCards() {
                 <h4>${card.name}</h4>
                 <p>Экранов: ${card.slides.length}</p>
             </div>
-            <button class="download-mini-btn" onclick="downloadSavedCard(${card.id})">Скачать</button>
+            <div class="saved-card-actions">
+                <button class="icon-btn" onclick="copySavedCardLink(${card.id})" title="Скопировать ссылку">🔗</button>
+                <button class="icon-btn" onclick="downloadSavedCard(${card.id})" title="Скачать файл">⬇️</button>
+                <button class="icon-btn delete-icon" onclick="deleteSavedCard(${card.id})" title="Удалить">🗑️</button>
+            </div>
         `;
         container.appendChild(div);
     });
+}
+
+// НОВАЯ: Удаление сохраненной открытки (Исправленная версия)
+function deleteSavedCard(cardId) {
+    if(!confirm("Точно удалить эту открытку из истории?")) return;
+    let userCards = JSON.parse(localStorage.getItem('otkritka_cards_' + currentUser)) || [];
+    
+    // Используем != вместо !==, чтобы не было конфликтов типов данных
+    userCards = userCards.filter(c => c.id != cardId);
+    
+    localStorage.setItem('otkritka_cards_' + currentUser, JSON.stringify(userCards));
+    renderSavedCards(); // Перерисовываем список
+}
+
+// НОВАЯ: Копирование ссылки из сохраненных
+function copySavedCardLink(cardId) {
+    let userCards = JSON.parse(localStorage.getItem('otkritka_cards_' + currentUser)) || [];
+    const card = userCards.find(c => c.id === cardId);
+    if(!card) return;
+    
+    const shortData = { b: card.bg, e: card.emoji || "", s: card.slides.map(slide => ({ h: slide.header, i: slide.img, m: slide.message })) };
+    const compressedData = LZString.compressToEncodedURIComponent(JSON.stringify(shortData));
+    const baseUrl = window.location.origin + window.location.pathname.replace(/[^\/]+$/, '');
+    const shareUrl = `${baseUrl}view.html?c=${compressedData}`;
+    
+    navigator.clipboard.writeText(shareUrl);
+    alert("Ссылка скопирована! Можно отправлять.");
 }
 
 
@@ -209,188 +328,131 @@ function useCustomUrl() {
     if (url) { slides[currentIndex].img = url; closeGifModal(); updateUI(); }
 }
 
-// --- 4. ФИНАЛ, ОПЛАТА И ОТПРАВКА ---
-function finishCard() {
-    // Проверка названия открытки
-    if (!currentCardName || currentCardName.trim() === "") {
-        alert("Пожалуйста, придумай название для открытки (на первой карточке)!");
-        currentIndex = 0; // Возвращаем пользователя на 1-й слайд
-        updateUI();
-        return;
-    }
 
-    if (slides.some(slide => !slide.img)) { 
-        alert("Пожалуйста, выбери картинки для всех карточек!"); 
-        return; 
+// --- 4. ФИНАЛ, ОПЛАТА И ОТПРАВКА ---
+// НОВОЕ: Отображение счетчика бесплатных открыток
+function updateFreeCardsDisplay() {
+    let count = parseInt(localStorage.getItem('otkritka_free_cards_' + currentUser)) || 0;
+    const displayEl = document.getElementById('freeCardsDisplay');
+    if (displayEl) {
+        if (count > 0) {
+            displayEl.innerHTML = `🎁 У тебя есть <b>${count}</b> бесплатные открытки!`;
+            displayEl.style.display = 'block';
+        } else {
+            displayEl.style.display = 'none';
+        }
     }
-    
-    document.getElementById('paywallStep').style.display = 'block';
-    document.getElementById('actionStep').style.display = 'none';
-    document.getElementById('finishModal').style.display = 'flex';
 }
 
-function closeFinishModal() { document.getElementById('finishModal').style.display = 'none'; }
-
-// ПОКУПКА И СОХРАНЕНИЕ В БАЗУ
-function simulatePayment() {
-    document.getElementById('paywallStep').style.display = 'none';
-    document.getElementById('actionStep').style.display = 'block';
-    
-    // Сохраняем открытку в локальную базу данных
+// НОВОЕ: Вспомогательная функция для сохранения в базу (чтобы не дублировать код)
+function saveCardToDatabase() {
     let userCards = JSON.parse(localStorage.getItem('otkritka_cards_' + currentUser)) || [];
-    
-    // Проверка: чтобы не сохранять одну и ту же открытку дважды, если юзер нажал "Готово" еще раз
     const isAlreadySaved = userCards.some(c => c.name === currentCardName && c.slides.length === slides.length);
     
     if (!isAlreadySaved) {
         userCards.push({
-            id: Date.now(), // Уникальный ID
+            id: Date.now(),
             name: currentCardName,
             bg: currentThemeBg,
-            slides: JSON.parse(JSON.stringify(slides)) // Копируем массив слайдов
+            emoji: currentThemeEmoji,
+            musicUrl: currentMusicUrl, // Обязательно сохраняем и музыку!
+            slides: JSON.parse(JSON.stringify(slides))
         });
         localStorage.setItem('otkritka_cards_' + currentUser, JSON.stringify(userCards));
     }
 }
 
-// ГЕНЕРАТОР HTML (Формат Stories - работает везде, без JS, со свайпами)
-function generateHtmlString(bgStyle, slidesArray) {
-    let allSlidesHtml = '';
+// ОБНОВЛЕНО: Логика кнопки "Готово"
+// ОБНОВЛЕНО: Логика кнопки "Готово" со строгим списанием
+function finishCard() {
+    if (!currentCardName || currentCardName.trim() === "") {
+        alert("Пожалуйста, придумай название для открытки (на первой карточке)!");
+        currentIndex = 0; updateUI(); return;
+    }
+    if (slides.some(slide => !slide.img)) { 
+        alert("Пожалуйста, выбери картинки для всех карточек!"); return; 
+    }
     
-    slidesArray.forEach((slide, index) => {
-        // Указываем ссылку на следующую карточку (или никуда, если это последняя)
-        const nextSlideId = index < slidesArray.length - 1 ? `#slide-${index + 1}` : `#slide-end`;
-        const btnText = index === slidesArray.length - 1 ? "Завершить 💖" : "Далее ➔";
+    // Показываем модалку
+    document.getElementById('finishModal').style.display = 'flex';
+
+    // Читаем количество бесплатных попыток
+    let freeCards = parseInt(localStorage.getItem('otkritka_free_cards_' + currentUser)) || 0;
+
+    if (freeCards > 0) {
+        // ЕСЛИ ЕСТЬ БЕСПЛАТНЫЕ ПОПЫТКИ:
+        document.getElementById('paywallStep').style.display = 'none';
+        document.getElementById('actionStep').style.display = 'block';
         
-        allSlidesHtml += `
-        <div class="slide" id="slide-${index}">
-            <div class="card">
-                <h2>${slide.header}</h2>
-                <div class="img-wrapper"><img src="${slide.img}" alt="gif"></div>
-                <div class="text-wrapper"><p>${slide.message}</p></div>
-                <a href="${nextSlideId}" class="next-btn">${btnText}</a>
-            </div>
-        </div>`;
-    });
-
-    // Финальный слайд (Конец)
-    allSlidesHtml += `
-        <div class="slide" id="slide-end">
-            <div class="card">
-                <h2>Конец! 🎉</h2>
-                <div class="img-wrapper"><img src="https://media.tenor.com/e2ZILKKbZIkAAAAj/peach-goma.gif"></div>
-                <div class="text-wrapper"><p>Надеюсь, тебе понравилось!</p></div>
-            </div>
-        </div>`;
-
-    return `<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Для тебя! ❤️</title>
-    <style>
-        /* СБРОС И ФОН */
-        html, body {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background: ${bgStyle}; font-family: 'Segoe UI', sans-serif;
-            overflow: hidden; /* Запрещаем скролл всей страницы */
-        }
-
-        /* КОНТЕЙНЕР-КАРУСЕЛЬ (Свайпы) */
-        #app {
-            width: 100%; height: 100%;
-            display: flex;
-            overflow-x: auto; /* Горизонтальная прокрутка */
-            overflow-y: hidden;
-            scroll-snap-type: x mandatory; /* Магнитятся к центру */
-            scroll-behavior: smooth; /* Плавный переход по клику на кнопку */
-            -webkit-overflow-scrolling: touch;
-        }
+        // Проверяем, не сохраняли ли мы ее уже (защита от двойного списания)
+        let userCards = JSON.parse(localStorage.getItem('otkritka_cards_' + currentUser)) || [];
+        const isAlreadySaved = userCards.some(c => c.name === currentCardName && c.slides.length === slides.length);
         
-        /* Прячем уродливую полосу прокрутки внизу */
-        #app::-webkit-scrollbar { display: none; }
-        #app { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* ОДИН ЭКРАН (100% ширины и высоты) */
-        .slide {
-            min-width: 100vw; height: 100%;
-            display: flex; justify-content: center; align-items: center;
-            scroll-snap-align: center; /* Центрируем при свайпе */
-            padding: 20px; box-sizing: border-box; /* Отступы от краев телефона */
+        if (!isAlreadySaved) {
+            saveCardToDatabase(); // Сохраняем в историю
+            freeCards--; // Списываем 1 попытку
+            localStorage.setItem('otkritka_free_cards_' + currentUser, freeCards); // Записываем остаток
         }
-
-        /* САМА БЕЛАЯ КАРТОЧКА */
-        .card {
-            background: white; border-radius: 20px; padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            width: 100%; max-width: 380px; 
-            height: 100%; max-height: 600px; /* Жестко ограничиваем высоту для Android */
-            display: flex; flex-direction: column; box-sizing: border-box;
-        }
-
-        /* ЗАГОЛОВОК */
-        h2 { color: #333; margin: 0 0 15px 0; text-align: center; flex-shrink: 0; }
-
-        /* БЛОК КАРТИНКИ (сжимается сам, если надо) */
-        .img-wrapper {
-            flex-grow: 1; /* Занимает всё свободное место */
-            display: flex; justify-content: center; align-items: center;
-            min-height: 120px; overflow: hidden; margin-bottom: 15px;
-        }
-        img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 15px; }
-
-        /* БЛОК ТЕКСТА (свой внутренний скролл, если текста много) */
-        .text-wrapper {
-            flex-shrink: 0; max-height: 35%; overflow-y: auto; 
-            margin-bottom: 15px; text-align: center;
-        }
-        .text-wrapper::-webkit-scrollbar { display: none; }
-        p { color: #555; font-size: 18px; line-height: 1.4; white-space: pre-wrap; margin: 0; }
-
-        /* КНОПКА (Сделана через ссылку <a>) */
-        .next-btn {
-            display: block; background: #ff69b4; color: white; text-decoration: none;
-            padding: 15px 25px; text-align: center; border-radius: 25px;
-            font-size: 16px; font-weight: bold; flex-shrink: 0; transition: 0.2s;
-            box-shadow: 0 4px 15px rgba(255, 105, 180, 0.4);
-        }
-        .next-btn:active { transform: scale(0.95); }
-
-        /* Подсказка внизу для тех, кто не понял про свайп */
-        .swipe-hint {
-            position: absolute; bottom: 10px; left: 0; width: 100%;
-            text-align: center; color: rgba(255,255,255,0.7); font-size: 12px; pointer-events: none;
-        }
-    </style>
-</head>
-<body>
-    <!-- ВЕСЬ КОНТЕНТ УЖЕ В HTML, JS НЕ НУЖЕН -->
-    <div id="app">
-        ${allSlidesHtml}
-    </div>
-    <div class="swipe-hint">Можно листать пальцем ↔</div>
-</body>
-</html>`;
+    } else {
+        // ЕСЛИ БЕСПЛАТНЫХ ПОПЫТОК НЕТ:
+        document.getElementById('paywallStep').style.display = 'block';
+        document.getElementById('actionStep').style.display = 'none';
+    }
 }
+
+function closeFinishModal() { 
+    document.getElementById('finishModal').style.display = 'none'; 
+}
+
+// ОБНОВЛЕНО: Симуляция оплаты с начислением бонуса
+function simulatePayment() {
+    document.getElementById('paywallStep').style.display = 'none';
+    document.getElementById('actionStep').style.display = 'block';
+    
+    // Сохраняем оплаченную открытку
+    saveCardToDatabase();
+    
+    // Начисляем 3 подарочные открытки на будущее
+    let freeCards = parseInt(localStorage.getItem('otkritka_free_cards_' + currentUser)) || 0;
+    freeCards += 3;
+    localStorage.setItem('otkritka_free_cards_' + currentUser, freeCards);
+    
+    alert("🎉 Оплата прошла успешно! В подарок вы получаете 3 бесплатные открытки!");
+}
+
+function goToDashboard() {
+    closeFinishModal();
+    showScreen('screen-dashboard');
+}
+
 
 // Кнопка скачивания из текущего билдера
 function downloadCard() {
-    const blob = new Blob([generateHtmlString(currentThemeBg, slides)], { type: 'text/html' });
+    const blob = new Blob([generateHtmlString(currentThemeBg, slides, currentThemeEmoji, currentMusicUrl)], { type: 'text/html' }); // Добавили эмодзи
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `${currentCardName}.html`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
-// Кнопка скачивания старой открытки из профиля
 function downloadSavedCard(cardId) {
     let userCards = JSON.parse(localStorage.getItem('otkritka_cards_' + currentUser)) || [];
     const card = userCards.find(c => c.id === cardId);
+    
     if(card) {
-        const blob = new Blob([generateHtmlString(card.bg, card.slides)], { type: 'text/html' });
+        // Достаем музыку из сохраненной карточки (если ее нет, передаем пустую строку)
+        const music = card.musicUrl || ""; 
+        
+        // Передаем музыку 4-м параметром
+        const blob = new Blob([generateHtmlString(card.bg, card.slides, card.emoji, music)], { type: 'text/html' }); 
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = `${card.name}.html`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        const a = document.createElement('a'); 
+        a.href = url; 
+        a.download = `${card.name}.html`;
+        
+        document.body.appendChild(a); 
+        a.click(); 
+        document.body.removeChild(a); 
+        URL.revokeObjectURL(url);
     }
 }
 
@@ -399,38 +461,69 @@ async function shareCard() {
     // 1. Укорачиваем названия ключей для экономии места
     const shortData = {
         b: currentThemeBg,
-        s: slides.map(slide => ({
-            h: slide.header,
-            i: slide.img,
-            m: slide.message
-        }))
+        e: currentThemeEmoji, // Эмодзи
+        mu: currentMusicUrl,  // НОВОЕ: Упаковываем музыку в ссылку под ключом 'mu'
+        s: slides.map(slide => ({ h: slide.header, i: slide.img, m: slide.message }))
     };
 
-    // 2. Сжимаем в очень плотную строку (магия LZ-String)
+    // 2. Сжимаем в строку
     const compressedData = LZString.compressToEncodedURIComponent(JSON.stringify(shortData));
     
-    // 3. Формируем короткую ссылку (параметр теперь называется 'c')
+    // 3. Формируем короткую ссылку
     const baseUrl = window.location.origin + window.location.pathname.replace(/[^\/]+$/, '');
     const shareUrl = `${baseUrl}view.html?c=${compressedData}`;
 
     // 4. Отправляем
     if (navigator.share) {
         try { 
-            await navigator.share({ 
-                title: currentCardName, 
-                text: 'Смотри, какую открытку я сделал! 💖', 
-                url: shareUrl 
-            }); 
-        } 
-        catch (err) { console.log('Отмена отправки', err); }
+            await navigator.share({ title: currentCardName, text: 'Смотри, какую открытку я сделал! 💖', url: shareUrl }); 
+        } catch (err) { 
+            console.log('Отмена отправки', err); 
+        }
     } else {
         navigator.clipboard.writeText(shareUrl);
         alert("Ссылка скопирована! Отправь её другу: \n\n" + shareUrl);
     }
 }
 
-// НОВОЕ: Переход домой после успешной покупки и скачивания
-function goToDashboard() {
-    closeFinishModal();
-    showScreen('screen-dashboard');
+
+
+// --- ОКНО ВЫБОРА МУЗЫКИ ---
+function openMusicModal() {
+    document.getElementById('musicModal').style.display = 'flex';
+    renderMusicOptions();
+}
+
+function closeMusicModal() {
+    document.getElementById('musicModal').style.display = 'none';
+}
+
+function renderMusicOptions() {
+    const container = document.getElementById('musicList');
+    container.innerHTML = '';
+    
+    musicLibrary.forEach(track => {
+        const btn = document.createElement('button');
+        btn.innerText = track.name;
+        // Базовый стиль кнопки
+        btn.style.cssText = "padding: 15px; border-radius: 15px; border: 2px solid #3498db; background: white; color: #3498db; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s;";
+        
+        // Красим кнопку в синий, если трек уже выбран
+        if (customSelectedMusicUrl === track.url) {
+            btn.style.background = '#3498db';
+            btn.style.color = 'white';
+        }
+
+        btn.onclick = () => {
+            customSelectedMusicUrl = track.url; // Запоминаем ссылку
+            
+            // Меняем текст и цвет кнопки в форме кастомной темы
+            const customBtn = document.getElementById('customMusicBtn');
+            customBtn.innerText = track.url ? track.name : '🎵 Выбрать музыку';
+            customBtn.style.background = track.url ? '#2ecc71' : '#3498db'; // Зеленый, если выбрали
+            
+            closeMusicModal();
+        };
+        container.appendChild(btn);
+    });
 }
