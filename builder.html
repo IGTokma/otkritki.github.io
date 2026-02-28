@@ -128,16 +128,32 @@
             </div>
             <div class="gif-modal" id="musicModal" style="z-index: 105;">
                 <div class="close-modal" onclick="closeMusicModal()">✖ Закрыть</div>
-                <h3 style="margin-top: 0;">Выбери настроение 🎵</h3>
+                <h3 style="margin-top: 0;">Выбери музыку 🎵</h3>
+                
+                <div class="custom-url-box" style="margin-bottom: 15px;">
+                    <input type="text" id="musicSearchInput" placeholder="Найти песню..." onkeypress="if(event.key === 'Enter') searchOnlineMusic()">
+                    <button onclick="searchOnlineMusic()" style="background: #9b59b6;">Поиск 🔍</button>
+                </div>
+
+                <div id="musicTags" class="tags-container"></div>
+                
+                <div class="custom-url-box" style="margin-top: 5px; margin-bottom: 10px;">
+                    <input type="text" id="customMusicUrlInput" placeholder="Ссылка на .mp3 файл (http://...)">
+                    <button id="testMusicBtn" onclick="useMusicCustomUrl()" style="min-width: 80px;">Ок</button>
+                </div>
+                
                 <div id="musicList" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-bottom: 20px;">
                     </div>
+
+                <audio id="previewPlayer" src=""></audio>
             </div>
         </div>
     </div>
 
-    <script src="gifs.js" ></script>
-    <script src="generator.js">
-    </script> <script src="builder.js"></script>
+    <script src="gifs.js"></script>
+    <script src="music.js"></script>
+    <script src="api_music.js"></script> <script src="generator.js"></script>
+    <script src="builder.js"></script>
     
 </body>
 </html>

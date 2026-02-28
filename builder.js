@@ -7,22 +7,17 @@ let customSelectedMusicUrl = ""; // Временная переменная дл
 let currentCardName = "";
 let slides = [{ header: "", img: "", message: "" }];
 let currentIndex = 0;
+let currentPlayingUrl = "";
 
-// НОВОЕ: Наша библиотека музыки
-const musicLibrary = [
-    { name: "Без музыки 🔇", url: "" },
-    { name: "Романтичная (Пианино) 🎹", url: "https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3" },
-    { name: "Веселая (Укулеле) 🌴", url: "https://cdn.pixabay.com/audio/2022/03/15/audio_10672e817a.mp3" },
-    { name: "Грустная (Скрипка) 🎻", url: "https://cdn.pixabay.com/audio/2021/08/09/audio_82472b49df.mp3" }
-];
 
-// НОВОЕ: Добавляем треки прямо в готовые темы
+
+// Берем музыку прямо из нашей базы myMusicLibrary
 const cardThemes = [
-    { id: 'mom', name: 'Любимой Маме 🌸', emoji: '🌸', bg: 'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)', music: musicLibrary[1].url },
-    { id: 'love', name: 'Любимому / Любимой ❤️', emoji: '❤️', bg: 'linear-gradient(to top, #ff0844 0%, #ffb199 100%)', music: musicLibrary[1].url },
-    { id: 'hb', name: 'С Днём Рождения 🎈', emoji: '🎈', bg: 'linear-gradient(120deg, #f6d365 0%, #fda085 100%)', music: musicLibrary[2].url },
-    { id: 'friend', name: 'Для Друга ✌️', emoji: '✌️', bg: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)', music: musicLibrary[2].url },
-    { id: 'sad', name: 'Прости меня 🥺', emoji: '🥺', bg: 'linear-gradient(to top, #accbee 0%, #e7f0fd 100%)', music: musicLibrary[3].url },
+    { id: 'mom', name: 'Любимой Маме 🌸', emoji: '🌸', bg: 'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)', music: myMusicLibrary.romantic.tracks[0].url },
+    { id: 'love', name: 'Любимому ❤️', emoji: '❤️', bg: 'linear-gradient(to top, #ff0844 0%, #ffb199 100%)', music: myMusicLibrary.romantic.tracks[0].url },
+    { id: 'hb', name: 'С Днём Рождения 🎈', emoji: '🎈', bg: 'linear-gradient(120deg, #f6d365 0%, #fda085 100%)', music: myMusicLibrary.fun.tracks[0].url },
+    { id: 'friend', name: 'Для Друга ✌️', emoji: '✌️', bg: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)', music: myMusicLibrary.fun.tracks[0].url },
+    { id: 'sad', name: 'Прости меня 🥺', emoji: '🥺', bg: 'linear-gradient(to top, #accbee 0%, #e7f0fd 100%)', music: myMusicLibrary.romantic.tracks[1].url },
     { id: 'neutral', name: 'Просто так ✨', emoji: '✨', bg: '#f0f2f5', music: "" }
 ];
 
@@ -489,41 +484,146 @@ async function shareCard() {
 
 
 // --- ОКНО ВЫБОРА МУЗЫКИ ---
+// --- ОКНО ВЫБОРА МУЗЫКИ (С ПРОСЛУШИВАНИЕМ И ТЕГАМИ) ---
+
 function openMusicModal() {
     document.getElementById('musicModal').style.display = 'flex';
-    renderMusicOptions();
+    renderMusicTags();
+    showTracksFromCategory('romantic'); // По умолчанию открываем романтику
 }
 
 function closeMusicModal() {
     document.getElementById('musicModal').style.display = 'none';
+    // Обязательно выключаем музыку при закрытии окна!
+    const player = document.getElementById('previewPlayer');
+    player.pause();
+    currentPlayingUrl = "";
 }
 
-function renderMusicOptions() {
-    const container = document.getElementById('musicList');
-    container.innerHTML = '';
+function renderMusicTags() {
+    const tagsContainer = document.getElementById('musicTags');
+    tagsContainer.innerHTML = '';
     
-    musicLibrary.forEach(track => {
+    for (const key in myMusicLibrary) {
         const btn = document.createElement('button');
-        btn.innerText = track.name;
-        // Базовый стиль кнопки
-        btn.style.cssText = "padding: 15px; border-radius: 15px; border: 2px solid #3498db; background: white; color: #3498db; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s;";
-        
-        // Красим кнопку в синий, если трек уже выбран
-        if (customSelectedMusicUrl === track.url) {
+        btn.innerText = myMusicLibrary[key].name;
+        btn.style.cssText = "padding: 8px 12px; border-radius: 15px; border: 1px solid #3498db; background: white; color: #3498db; cursor: pointer; transition: 0.2s;";
+        btn.onclick = () => {
+            // Подсвечиваем активный тег
+            Array.from(tagsContainer.children).forEach(b => b.style.background = 'white');
+            Array.from(tagsContainer.children).forEach(b => b.style.color = '#3498db');
             btn.style.background = '#3498db';
             btn.style.color = 'white';
-        }
-
-        btn.onclick = () => {
-            customSelectedMusicUrl = track.url; // Запоминаем ссылку
             
-            // Меняем текст и цвет кнопки в форме кастомной темы
-            const customBtn = document.getElementById('customMusicBtn');
-            customBtn.innerText = track.url ? track.name : '🎵 Выбрать музыку';
-            customBtn.style.background = track.url ? '#2ecc71' : '#3498db'; // Зеленый, если выбрали
-            
-            closeMusicModal();
+            showTracksFromCategory(key);
         };
-        container.appendChild(btn);
+        tagsContainer.appendChild(btn);
+    }
+}
+
+function showTracksFromCategory(categoryKey) {
+    const container = document.getElementById('musicList');
+    container.innerHTML = ''; 
+    
+    myMusicLibrary[categoryKey].tracks.forEach(track => {
+        const card = document.createElement('div');
+        // Красивый стиль карточки трека
+        card.style.cssText = "display: flex; align-items: center; gap: 10px; background: #f8f9fa; padding: 10px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);";
+        
+        // Кнопка Play/Pause и картинка
+        const playIcon = currentPlayingUrl === track.url && track.url !== "" ? '⏸️' : '▶️';
+        
+        card.innerHTML = `
+            <img src="${track.cover}" style="width: 50px; height: 50px; border-radius: 10px; object-fit: cover;">
+            <div style="flex-grow: 1;">
+                <div style="font-weight: bold; color: #333; font-size: 14px;">${track.name}</div>
+            </div>
+            ${track.url ? `<button onclick="togglePreview('${track.url}')" style="background:none; border:none; font-size:24px; cursor:pointer;" id="playBtn-${track.url.replace(/[^a-zA-Z0-9]/g, '')}">${playIcon}</button>` : ''}
+            <button onclick="confirmMusicSelection('${track.url}', '${track.name}')" style="background: #2ecc71; color: white; border: none; padding: 8px 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">Выбрать</button>
+        `;
+        container.appendChild(card);
     });
+}
+
+// Предпрослушивание трека
+function togglePreview(url) {
+    const player = document.getElementById('previewPlayer');
+    const safeId = url.replace(/[^a-zA-Z0-9]/g, ''); // Делаем ID безопасным
+
+    // 1. Сбрасываем все кнопки Play обратно на ▶️
+    document.querySelectorAll('[id^="playBtn-"]').forEach(btn => {
+        btn.innerText = '▶️';
+    });
+
+    if (currentPlayingUrl === url) {
+        // Если нажали на то, что уже играет - ставим на паузу
+        player.pause();
+        currentPlayingUrl = "";
+    } else {
+        // Если включили новый трек
+        player.src = url;
+        player.play();
+        currentPlayingUrl = url;
+        
+        // Меняем иконку именно у нажатой кнопки на ⏸️
+        const currentBtn = document.getElementById(`playBtn-${safeId}`);
+        if (currentBtn) currentBtn.innerText = '⏸️';
+    }
+}
+
+// Подтверждение выбора музыки
+function confirmMusicSelection(url, name) {
+    customSelectedMusicUrl = url;
+    
+    // Обновляем главную кнопку в меню "Свой дизайн"
+    const customBtn = document.getElementById('customMusicBtn');
+    customBtn.innerText = url ? name : 'Без музыки 🔇';
+    customBtn.style.background = url ? '#2ecc71' : '#95a5a6'; 
+    
+    closeMusicModal();
+}
+
+// --- ДОБАВИТЬ ВНИЗ ФАЙЛА builder.js ---
+
+// Проверка и добавление пользовательской ссылки на музыку
+function useMusicCustomUrl() {
+    const urlInput = document.getElementById('customMusicUrlInput');
+    const url = urlInput.value.trim();
+    const btn = document.getElementById('testMusicBtn');
+
+    if (!url) return;
+
+    // Включаем режим загрузки
+    btn.innerText = "⏳...";
+    btn.disabled = true;
+    urlInput.disabled = true;
+
+    // Создаем тестовый аудиоплеер для проверки ссылки
+    const testAudio = new Audio();
+    
+    // Если музыка загрузилась и готова играть:
+    testAudio.oncanplay = () => {
+        btn.innerText = "Ок";
+        btn.disabled = false;
+        urlInput.disabled = false;
+        
+        // Останавливаем предпрослушку из базы, если она играла
+        document.getElementById('previewPlayer').pause();
+        currentPlayingUrl = "";
+        
+        // Подтверждаем выбор!
+        confirmMusicSelection(url, "Своя музыка 🎵");
+        urlInput.value = '';
+    };
+
+    // Если сервер сбросил соединение, файл не найден или это не прямая ссылка:
+    testAudio.onerror = () => {
+        alert("❌ Ошибка: Не удалось загрузить музыку.\n\nУбедись, что ссылка ведет напрямую на файл .mp3, а не на страницу с плеером (как YouTube или Яндекс.Музыка), и сервер разрешает скачивание.");
+        btn.innerText = "Ок";
+        btn.disabled = false;
+        urlInput.disabled = false;
+    };
+
+    // Пытаемся загрузить (именно эта строчка запускает проверку)
+    testAudio.src = url;
 }
