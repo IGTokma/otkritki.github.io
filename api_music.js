@@ -1,20 +1,27 @@
-// Файл: api_music.js
 // Работает с публичным iTunes API (Apple Music)
-
+// Файл: api_music.js
 async function searchOnlineMusic() {
     const query = document.getElementById('musicSearchInput').value.trim();
     const container = document.getElementById('musicList');
+    const tagsContainer = document.getElementById('musicTags'); // Находим контейнер с тегами
     
+    // Если строку поиска очистили и нажали Enter/Поиск
     if (!query) {
-        alert("Введите название песни или исполнителя!");
+        tagsContainer.style.display = 'flex'; // Возвращаем теги
+        // Если функция showTracksFromCategory доступна, показываем дефолтную категорию
+        if (typeof showTracksFromCategory === 'function') {
+            showTracksFromCategory('romantic'); 
+        }
         return;
     }
 
+    // Прячем теги, чтобы не плющило интерфейс
+    tagsContainer.style.display = 'none';
+    
     // Показываем загрузку
     container.innerHTML = '<div style="text-align:center; padding: 20px; color: #888;">Ищем треки... ⏳</div>';
 
     try {
-        // Делаем запрос к Apple (лимит 15 треков)
         const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=15&country=RU`);
         const data = await response.json();
 
@@ -23,21 +30,21 @@ async function searchOnlineMusic() {
             return;
         }
 
-        container.innerHTML = ''; // Очищаем контейнер
+        container.innerHTML = ''; 
 
         data.results.forEach(track => {
-            const previewUrl = track.previewUrl; // Ссылка на 30-сек аудио (.m4a)
-            if (!previewUrl) return; // Пропускаем, если у трека нет превью
+            const previewUrl = track.previewUrl; 
+            if (!previewUrl) return; 
 
-            // Apple отдает мелкие картинки 100x100, мы хакаем ссылку и просим 200x200
             const cover = track.artworkUrl100.replace('100x100bb', '200x200bb');
-            const safeTitle = `${track.artistName} - ${track.trackName}`.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+            const safeTitle = `${track.artistName} - ${track.trackName}`.replace(/'/g, "’").replace(/"/g, "”");
 
             const card = document.createElement('div');
             card.style.cssText = "display: flex; align-items: center; gap: 10px; background: #f8f9fa; padding: 10px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);";
 
             const safeId = previewUrl.replace(/[^a-zA-Z0-9]/g, '');
-            const playIcon = currentPlayingUrl === previewUrl ? '⏸️' : '▶️';
+            // Берем переменную currentPlayingUrl из builder.js
+            const playIcon = window.currentPlayingUrl === previewUrl ? '⏸️' : '▶️'; 
 
             card.innerHTML = `
                 <img src="${cover}" style="width: 50px; height: 50px; border-radius: 10px; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">

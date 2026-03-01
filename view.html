@@ -1,50 +1,73 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta property="og:title" content="Тебе анонимная открытка! 💌">
-    <meta property="og:description" content="У тебя новое послание. Нажми, чтобы открыть и посмотреть!">
-    <meta property="og:image" content="https://igtokma.github.io/otkritki.github.io/preview.jpg">
-    <meta property="og:type" content="website">
-    <meta name="twitter:card" content="summary_large_image">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тебе открытка! ❤️</title>
-    <script src="generator.js"></script> <script src="builder.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+    <title>Для тебя! ❤️</title>
+    <script src="generator.js"></script>
 </head>
-<body>
+<body style="margin:0; padding:0; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', sans-serif;">
+    
+    <div id="loadingScreen" style="text-align: center;">
+        <h2 id="loadingText" style="color: #555;">Достаем открытку... 🎁</h2>
+    </div>
+
     <script>
-        // 2. ЛОГИКА ЧТЕНИЯ ССЫЛКИ
-        try {
+        // Тот же адрес бэкенда, что и в конструкторе
+        const API_URL = "http://127.0.0.1:8000";
+
+        async function loadCard() {
+            // 1. Достаем ID из ссылки (например: ?id=aB8jK)
             const urlParams = new URLSearchParams(window.location.search);
-            const compressed = urlParams.get('c'); // Ищем короткий параметр 'c'
-            
-            if (compressed) {
-                // 1. Распаковываем архив
-                const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
-                const shortData = JSON.parse(decompressed);
+            const cardId = urlParams.get('id');
+
+            if (!cardId) {
+                document.getElementById('loadingText').innerText = "❌ Ссылка повреждена или устарела.";
+                return;
+            }
+
+            try {
+                // 2. Делаем запрос к нашему FastAPI бэкенду
+                const response = await fetch(`${API_URL}/api/cards/${cardId}`);
                 
-                // 2. Восстанавливаем нормальные названия ключей для твоей функции
-                const restoredSlides = shortData.s.map(slide => ({
+                // Если сервер ответил ошибкой 404
+                if (response.status === 404) {
+                    document.getElementById('loadingText').innerText = "😔 Открытка не найдена. Возможно, она удалена.";
+                    return;
+                }
+                
+                if (!response.ok) throw new Error("Ошибка сервера");
+
+                // 3. Получаем расшифрованные данные из базы!
+                const cardData = await response.json();
+                
+                // --- НОВОЕ: Восстанавливаем короткие ключи обратно в полные ---
+                const restoredSlides = cardData.s.map(slide => ({
                     header: slide.h,
                     img: slide.i,
                     message: slide.m
                 }));
+
+                // 4. Собираем HTML с помощью нашего генератора
+                // cardData содержит { b: фон, e: эмодзи, mu: музыка, s: слайды }
+                const finalHtml = generateHtmlString(cardData.b, restoredSlides, cardData.e, cardData.mu || "", cardData.hm || "", cardData.rb || false);
                 
-                // 3. Генерируем открытку
-                // Передаем эмодзи третьим параметром
-                // Достаем ключ shortData.mu и передаем 4-м параметром
-                const finalHtml = generateHtmlString(shortData.b, restoredSlides, shortData.e, shortData.mu || "");
+                // 5. Перерисовываем страницу готовой открыткой
                 document.open();
                 document.write(finalHtml);
                 document.close();
-            } else {
-                document.body.innerHTML = "<h2 style='text-align:center; font-family:sans-serif; margin-top:50px;'>Открытка не найдена 🥺</h2>";
+
+            } catch (err) {
+                console.error(err);
+                // Теперь мы будем видеть РЕАЛЬНУЮ причину поломки, а не просто текст про сервер
+                document.getElementById('loadingText').innerHTML = `❌ Ошибка отрисовки:<br><span style="color:red; font-size:14px;">${err.message}</span>`;
             }
-        } catch(e) {
-            console.error(e);
-            document.body.innerHTML = "<h2 style='text-align:center; font-family:sans-serif; margin-top:50px;'>Ошибка загрузки 🥺</h2>";
         }
+
+        // Запускаем магию при открытии страницы
+        loadCard();
     </script>
+    <div id="toastContainer" class="toast-container"></div>
+    
 </body>
 </html>

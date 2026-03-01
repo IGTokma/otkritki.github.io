@@ -1,17 +1,19 @@
+const API_URL = "http://127.0.0.1:8000"; 
+
 // --- СОСТОЯНИЕ ПРИЛОЖЕНИЯ ---
 let currentUser = null;
 let currentThemeBg = "#f0f2f5";
 let currentThemeEmoji = ""; 
-let currentMusicUrl = ""; // Музыка для текущей открытки
-let customSelectedMusicUrl = ""; // Временная переменная для окна "Свой дизайн"
+let currentMusicUrl = ""; 
+let customSelectedMusicUrl = ""; 
 let currentCardName = "";
 let slides = [{ header: "", img: "", message: "" }];
 let currentIndex = 0;
 let currentPlayingUrl = "";
+let currentSavedUrl = null; 
+let isSavingCard = false;   
+window.selectedCustomColor = "#ffb6c1";
 
-
-
-// Берем музыку прямо из нашей базы myMusicLibrary
 const cardThemes = [
     { id: 'mom', name: 'Любимой Маме 🌸', emoji: '🌸', bg: 'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)', music: myMusicLibrary.romantic.tracks[0].url },
     { id: 'love', name: 'Любимому ❤️', emoji: '❤️', bg: 'linear-gradient(to top, #ff0844 0%, #ffb199 100%)', music: myMusicLibrary.romantic.tracks[0].url },
@@ -21,137 +23,320 @@ const cardThemes = [
     { id: 'neutral', name: 'Просто так ✨', emoji: '✨', bg: '#f0f2f5', music: "" }
 ];
 
-
-
-// Гарантированный запуск при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    checkAuth();
-    renderThemes();
-    renderCategoryButtons();
+    const token = localStorage.getItem('otkritka_token');
+    const savedUser = localStorage.getItem('otkritka_username');
+    if (token && savedUser) {
+        currentUser = savedUser;
+        const nameDisplay = document.getElementById('userNameDisplay');
+        if(nameDisplay) nameDisplay.innerText = currentUser;
+        fetchUserProfile(); 
+        showScreen('screen-dashboard');
+        renderSavedCards();
+    } else {
+        showScreen('screen-auth');
+    }
+    // Отрисовка запустится после того, как lang.js переведет интерфейс
+    setTimeout(() => {
+        renderThemes();
+        renderCategoryButtons();
+    }, 100);
 });
 
-// --- 1. АВТОРИЗАЦИЯ И ЭКРАНЫ ---
+// --- СИСТЕМА УВЕДОМЛЕНИЙ И ПОДТВЕРЖДЕНИЙ ---
+function showToast(message, type = "") {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span class="toast-message">${message}</span><span class="toast-close" style="margin-left:15px; opacity:0.5; font-size:18px;">✖</span>`;
+    const removeToast = () => { toast.classList.add('fade-out'); setTimeout(() => toast.remove(), 300); };
+    toast.addEventListener('click', removeToast);
+    setTimeout(removeToast, 4000);
+    container.appendChild(toast);
+}
+
+function showConfirm(message, onConfirmCallback) {
+    const overlay = document.getElementById('confirmOverlay');
+    const modal = document.getElementById('confirmModal');
+    if(!overlay || !modal) {
+        if(confirm(message)) onConfirmCallback();
+        return;
+    }
+    document.getElementById('confirmMessage').innerText = message;
+    overlay.style.display = 'block';
+    modal.style.display = 'block';
+    const closeConfirm = () => {
+        overlay.style.display = 'none';
+        modal.style.display = 'none';
+        document.getElementById('confirmYesBtn').onclick = null;
+        document.getElementById('confirmNoBtn').onclick = null;
+    };
+    document.getElementById('confirmYesBtn').onclick = () => { closeConfirm(); onConfirmCallback(); };
+    document.getElementById('confirmNoBtn').onclick = closeConfirm;
+}
+
+// --- АВТОРИЗАЦИЯ ---
+async function registerUser() {
+    const user = document.getElementById('usernameInput').value.trim();
+    const pass = document.getElementById('passwordInput').value.trim();
+    if (!user || !pass) return showToast(window.t('toast_enter_cred') || "Пожалуйста, введите логин и пароль!", "error");
+
+    try {
+        const regResponse = await fetch(`${API_URL}/api/register`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user, password: pass })
+        });
+        
+        const regData = await regResponse.json();
+        if (!regResponse.ok) return showToast((window.t('toast_err_server') || "Ошибка сервера!") + " " + regData.detail, "error");
+
+        showToast(window.t('toast_acc_created') || "🎉 Аккаунт создан! Входим...", "success");
+        
+        const formData = new URLSearchParams(); formData.append('username', user); formData.append('password', pass);
+        const loginResponse = await fetch(`${API_URL}/api/login`, {
+            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formData.toString()
+        });
+        
+        if (loginResponse.ok) {
+            const loginData = await loginResponse.json();
+            localStorage.setItem('otkritka_token', loginData.access_token);
+            localStorage.setItem('otkritka_username', user);
+            currentUser = user; 
+            document.getElementById('userNameDisplay').innerText = currentUser;
+            await fetchUserProfile(); showScreen('screen-dashboard'); renderSavedCards();
+        }
+    } catch (e) { showToast(window.t('toast_net_err') || "Ошибка сети. Бэкенд запущен?", "error"); }
+}
+
+async function loginUser() {
+    const user = document.getElementById('usernameInput').value.trim();
+    const pass = document.getElementById('passwordInput').value.trim();
+    if (!user || !pass) return showToast(window.t('toast_enter_cred') || "Введите логин и пароль!", "error");
+
+    const formData = new URLSearchParams(); formData.append('username', user); formData.append('password', pass);
+    try {
+        const response = await fetch(`${API_URL}/api/login`, {
+            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formData.toString()
+        });
+        const data = await response.json();
+        if (response.ok) {
+            localStorage.setItem('otkritka_token', data.access_token);
+            localStorage.setItem('otkritka_username', user);
+            currentUser = user; 
+            document.getElementById('userNameDisplay').innerText = currentUser;
+            await fetchUserProfile(); showScreen('screen-dashboard'); renderSavedCards();
+        } else {
+            showToast(window.t('toast_wrong_cred') || "❌ Неверный логин или пароль", "error");
+        }
+    } catch (e) { showToast(window.t('toast_net_err') || "Ошибка сети. Бэкенд запущен?", "error"); }
+}
+
+function logout() {
+    localStorage.removeItem('otkritka_token');
+    localStorage.removeItem('otkritka_username');
+    currentUser = null;
+    location.reload();
+}
+
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
-    
     if(screenId === 'screen-dashboard') {
         document.body.style.background = '#f0f2f5';
         const pattern = document.getElementById('bg-pattern-layer');
         if (pattern) pattern.remove(); 
-        renderSavedCards(); 
-        
-        // ДОБАВИТЬ ЭТУ СТРОЧКУ: Обновляем текст с бесплатными открытками
-        updateFreeCardsDisplay(); 
     }
 }
 
-function checkAuth() {
-    const savedUser = localStorage.getItem('otkritka_user');
-    if (savedUser) {
-        currentUser = savedUser;
-        document.getElementById('userNameDisplay').innerText = currentUser;
-        showScreen('screen-dashboard');
-    } else {
-        showScreen('screen-auth');
+// --- БАЛАНС И МАГАЗИН ---
+async function fetchUserProfile() {
+    const token = localStorage.getItem('otkritka_token');
+    if (!token) return;
+    try {
+        const response = await fetch(`${API_URL}/api/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (response.ok) {
+            const data = await response.json();
+            const balanceEl = document.getElementById('balanceDisplay');
+            if(balanceEl) balanceEl.innerText = data.free_cards;
+            
+            const promoShop = document.getElementById('shopPromoBanner');
+            const displayEl = document.getElementById('freeCardsDisplay');
+            if (data.has_made_first_purchase) {
+                if (promoShop) promoShop.style.display = 'none';
+                if (displayEl) displayEl.style.display = 'none';
+            } else {
+                if (promoShop) promoShop.style.display = 'block';
+                if (displayEl && data.free_cards > 0) {
+                    displayEl.innerHTML = `🎁 У тебя есть <b>${data.free_cards}</b> бесплатные открытки!`;
+                    displayEl.style.display = 'block';
+                } else if(displayEl) {
+                    displayEl.style.display = 'none';
+                }
+            }
+        }
+    } catch (e) { console.log("Не удалось обновить профиль"); }
+}
+
+function openShopModal() { const s = document.getElementById('shopModal'); if(s) s.style.display = 'flex'; }
+function closeShopModal() { const s = document.getElementById('shopModal'); if(s) s.style.display = 'none'; }
+function openOutOfCardsModal() { const m = document.getElementById('outOfCardsModal'); if(m) m.style.display = 'flex'; }
+function closeOutOfCardsModal() { const m = document.getElementById('outOfCardsModal'); if(m) m.style.display = 'none'; }
+
+async function simulatePurchase(amount, isSilent = false) {
+    const token = localStorage.getItem('otkritka_token');
+    try {
+        const response = await fetch(`${API_URL}/api/buy-cards`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: amount })
+        });
+        if (!response.ok) { showToast(window.t('toast_err_server') || "Ошибка сервера!", "error"); return false; }
+        if (!isSilent) showToast(window.t('toast_buy_success') || "✅ Успешно оплачено!", "success");
+        fetchUserProfile(); 
+        closeShopModal();
+        return true; 
+    } catch (e) { showToast(window.t('toast_buy_net_err') || "Ошибка сети при покупке", "error"); return false; }
+}
+
+async function buySingleAndSave() {
+    const btn = document.getElementById('buySingleBtn');
+    if(btn) btn.innerText = '⏳...';
+    
+    // Покупаем строго 1 штуку!
+    const success = await simulatePurchase(1, true); 
+    
+    if(btn) btn.innerText = window.t('buy_1') || 'Купить 1 шт. — 59 ₽';
+    
+    if (success) {
+        closeOutOfCardsModal();
+        document.getElementById('finishModal').style.display = 'flex';
+        shareCard(); 
     }
 }
 
-function login() {
-    const name = document.getElementById('usernameInput').value.trim();
-    if (name.length < 2) { alert("Пожалуйста, введи свое имя!"); return; }
-    localStorage.setItem('otkritka_user', name);
-    checkAuth();
-}
-
-function logout() {
-    localStorage.removeItem('otkritka_user');
-    currentUser = null;
-    document.getElementById('usernameInput').value = '';
-    checkAuth();
-}
-
-// --- 2. ДАШБОРД (ТЕМЫ И БАЗА СОХРАНЕНИЙ) ---
+// --- ТЕМЫ И ИСТОРИЯ ---
 function renderThemes() {
     const container = document.getElementById('themesContainer');
+    if(!container) return;
     container.innerHTML = '';
-    
     cardThemes.forEach(theme => {
         const btn = document.createElement('button');
         btn.className = 'theme-tile';
-        btn.innerText = theme.name;
+        const translatedName = window.t('theme_' + theme.id) || theme.name;
+        btn.innerText = translatedName;
         btn.style.background = theme.bg;
-        // Передаем музыку третьим параметром
-        btn.onclick = () => startBuilder(theme.bg, theme.emoji, theme.music);
+        btn.onclick = () => startBuilder(theme.bg, theme.emoji, theme.music, translatedName);
         container.appendChild(btn);
     });
-
     const customBtn = document.createElement('button');
     customBtn.className = 'theme-tile';
-    customBtn.innerHTML = '+ Свой дизайн 🎨';
+    customBtn.innerHTML = window.t('theme_custom') || '+ Свой дизайн 🎨';
     customBtn.style.background = 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)';
     customBtn.style.color = '#333';
-    customBtn.onclick = () => openCustomThemeModal();
+    customBtn.onclick = () => {
+        startBuilder('#f0f2f5', '', '', ''); 
+        document.getElementById('customThemeModal').style.display = 'flex';
+        document.getElementById('customThemeName').value = '';
+        document.getElementById('customThemeEmoji').value = '';
+        customSelectedMusicUrl = ""; 
+        const musicBtn = document.getElementById('customMusicBtn');
+        if(musicBtn) { musicBtn.innerText = '🎵'; musicBtn.style.background = '#3498db'; }
+    };
     container.appendChild(customBtn);
 }
 
-// --- УПРАВЛЕНИЕ КАСТОМНОЙ ТЕМОЙ ---
-function openCustomThemeModal() {
-    startBuilder('#f0f2f5', '', ''); 
-    
-    document.getElementById('customThemeModal').style.display = 'flex';
-    document.getElementById('customThemeName').value = '';
-    document.getElementById('customThemeEmoji').value = '';
-    
-    // Сбрасываем кнопку музыки к начальному виду
-    customSelectedMusicUrl = ""; 
-    const musicBtn = document.getElementById('customMusicBtn');
-    musicBtn.innerText = '🎵 Выбрать музыку';
-    musicBtn.style.background = '#3498db';
-    
-    document.getElementById('customThemeColor').oninput = function() {
-        document.getElementById('customColorHex').innerText = this.value;
-    };
+function setCustomColor(color) {
+    document.getElementById('customColorHex').innerText = color;
+    window.selectedCustomColor = color;
 }
 
 function closeCustomThemeModal() {
     document.getElementById('customThemeModal').style.display = 'none';
-    // Если передумал создавать свою тему — возвращаем обратно на главный экран
     showScreen('screen-dashboard'); 
 }
 
 function startCustomTheme() {
     const name = document.getElementById('customThemeName').value.trim();
     const emoji = document.getElementById('customThemeEmoji').value.trim();
-    const color = document.getElementById('customThemeColor').value;
-    
-    if (!name) { alert("Пожалуйста, напиши, кому будет эта открытка!"); return; }
-    
+    const color = window.selectedCustomColor || document.getElementById('customThemeColor').value;
+    if (!name) return showToast(window.t('toast_who_for') || "Кому будет эта открытка?", "error"); 
     document.getElementById('customThemeModal').style.display = 'none';
-    
-    // Перезапускаем с цветом, смайлом и ВЫБРАННОЙ музыкой
-    startBuilder(color, emoji, customSelectedMusicUrl); 
-    
-    setTimeout(() => {
-        const nameInput = document.getElementById('cardNameInput');
-        nameInput.value = name;
-        currentCardName = name; 
-    }, 50);
+    startBuilder(color, emoji, customSelectedMusicUrl, name); 
 }
 
-// НАЧАЛО СОЗДАНИЯ (Запрос имени)
-// НАЧАЛО СОЗДАНИЯ
-function startBuilder(bgStyle, emoji, musicUrl = "") {
-    currentCardName = ""; 
+async function renderSavedCards() {
+    const container = document.getElementById('savedCardsContainer');
+    if(!container) return;
+    container.innerHTML = '<div style="text-align:center; color:#888;">⏳...</div>';
+    const token = localStorage.getItem('otkritka_token');
+    if (!token) return;
+    try {
+        const response = await fetch(`${API_URL}/api/my-cards`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (response.status === 401) { logout(); return; }
+        if (!response.ok) throw new Error("Ошибка");
+        const cards = await response.json();
+        container.innerHTML = '';
+        if (cards.length === 0) { container.innerHTML = '<div style="text-align:center; color:#888;">Пусто</div>'; return; }
+        
+        cards.reverse().forEach(card => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'saved-card-item';
+            
+            const displayName = (!card.name || card.name === 'Без названия' || card.name === 'Untitled') 
+                                ? (window.t('untitled') || 'Без названия') 
+                                : card.name;
+                                
+            const shareText = window.t('btn_share') || 'Поделиться';
+
+            cardEl.innerHTML = `
+                <div class="saved-card-preview" style="background: ${card.bg};"><div class="saved-card-emoji">${card.emoji || '💌'}</div></div>
+                <div class="saved-card-info"><div class="saved-card-name">${displayName}</div></div>
+                <div class="saved-card-actions">
+                    <button class="saved-btn share-btn" onclick="shareSavedCardFromServer('${card.id}')">${shareText}</button>
+                    <button class="saved-btn delete-btn" onclick="deleteCardFromServer('${card.id}')">🗑️</button>
+                </div>
+            `;
+            container.appendChild(cardEl);
+        });
+    } catch (err) { container.innerHTML = '<div style="text-align:center; color:red;">Ошибка</div>'; }
+}
+
+async function shareSavedCardFromServer(shortId) {
+    const baseUrl = window.location.origin + window.location.pathname.replace(/[^\/]+$/, '');
+    const finalUrl = `${baseUrl}view.html?id=${shortId}`;
+    if (navigator.share) {
+        try { await navigator.share({ title: "Открытка", text: 'Смотри, какую открытку я сделал! 💖', url: finalUrl }); } 
+        catch (err) { }
+    } else {
+        navigator.clipboard.writeText(finalUrl);
+        showToast(window.t('toast_link_copied') || "Ссылка скопирована!", "success");
+    }
+}
+
+function deleteCardFromServer(shortId) {
+    const msg = window.t('confirm_del_saved') || "Точно удалить навсегда?";
+    showConfirm(msg, async () => {
+        const token = localStorage.getItem('otkritka_token');
+        try {
+            const response = await fetch(`${API_URL}/api/cards/${shortId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+            if (response.ok) { renderSavedCards(); showToast(window.t('toast_deleted') || "Удалено", "success"); } 
+            else { showToast(window.t('toast_delete_err') || "Ошибка удаления", "error"); }
+        } catch (e) { showToast(window.t('toast_net_err') || "Ошибка сети", "error"); }
+    });
+}
+
+// --- КОНСТРУКТОР ---
+function startBuilder(bgStyle, emoji, musicUrl = "", defaultName = "") {
+    currentSavedUrl = null;
+    currentCardName = defaultName; 
     currentThemeBg = bgStyle;
     currentThemeEmoji = emoji || ""; 
-    currentMusicUrl = musicUrl; // Сохраняем музыку в память!
-    
+    currentMusicUrl = musicUrl; 
     document.body.style.background = bgStyle;
     
     const oldPattern = document.getElementById('bg-pattern-layer');
     if (oldPattern) oldPattern.remove();
-    
     if (currentThemeEmoji) {
         const pattern = document.createElement('div');
         pattern.id = 'bg-pattern-layer';
@@ -160,14 +345,20 @@ function startBuilder(bgStyle, emoji, musicUrl = "") {
         document.body.appendChild(pattern);
     }
     
-slides = [{ header: "", img: "", message: "" }];
+    slides = [{ header: "", img: "", message: "" }];
     currentIndex = 0;
-    document.getElementById('cardNameInput').value = '';
+    
+    const nameInput = document.getElementById('cardNameInput');
+    if(nameInput) nameInput.value = defaultName;
+    
+    const interactBlock = document.getElementById('interactiveFeaturesBlock');
+    if(interactBlock) {
+        document.getElementById('hiddenMessageInput').value = "";
+        document.getElementById('runawayBtnCheckbox').checked = false;
+    }
     
     const customModal = document.getElementById('customThemeModal');
     if (customModal) customModal.style.display = 'none';
-
-    // ДОБАВЛЯЕМ ЭТО: Жесткий сброс финального окна при старте!
     const finishModal = document.getElementById('finishModal');
     if (finishModal) finishModal.style.display = 'none';
 
@@ -175,88 +366,29 @@ slides = [{ header: "", img: "", message: "" }];
     showScreen('screen-builder');
 }
 
-// ВЫВОД СОХРАНЕННЫХ ОТКРЫТОК
-function renderSavedCards() {
-    const container = document.getElementById('savedCardsContainer');
-    container.innerHTML = '';
-    let userCards = JSON.parse(localStorage.getItem('otkritka_cards_' + currentUser)) || [];
-
-    if (userCards.length === 0) {
-        container.innerHTML = '<p style="color:#888; font-size:14px;">У тебя пока нет сохраненных открыток.</p>';
-        return;
-    }
-
-    userCards.reverse().forEach(card => {
-        const div = document.createElement('div');
-        div.className = 'saved-card-item';
-        div.innerHTML = `
-            <div class="saved-card-info">
-                <h4>${card.name}</h4>
-                <p>Экранов: ${card.slides.length}</p>
-            </div>
-            <div class="saved-card-actions">
-                <button class="icon-btn" onclick="copySavedCardLink(${card.id})" title="Скопировать ссылку">🔗</button>
-                <button class="icon-btn" onclick="downloadSavedCard(${card.id})" title="Скачать файл">⬇️</button>
-                <button class="icon-btn delete-icon" onclick="deleteSavedCard(${card.id})" title="Удалить">🗑️</button>
-            </div>
-        `;
-        container.appendChild(div);
-    });
-}
-
-// НОВАЯ: Удаление сохраненной открытки (Исправленная версия)
-function deleteSavedCard(cardId) {
-    if(!confirm("Точно удалить эту открытку из истории?")) return;
-    let userCards = JSON.parse(localStorage.getItem('otkritka_cards_' + currentUser)) || [];
-    
-    // Используем != вместо !==, чтобы не было конфликтов типов данных
-    userCards = userCards.filter(c => c.id != cardId);
-    
-    localStorage.setItem('otkritka_cards_' + currentUser, JSON.stringify(userCards));
-    renderSavedCards(); // Перерисовываем список
-}
-
-// НОВАЯ: Копирование ссылки из сохраненных
-function copySavedCardLink(cardId) {
-    let userCards = JSON.parse(localStorage.getItem('otkritka_cards_' + currentUser)) || [];
-    const card = userCards.find(c => c.id === cardId);
-    if(!card) return;
-    
-    const shortData = { b: card.bg, e: card.emoji || "", s: card.slides.map(slide => ({ h: slide.header, i: slide.img, m: slide.message })) };
-    const compressedData = LZString.compressToEncodedURIComponent(JSON.stringify(shortData));
-    const baseUrl = window.location.origin + window.location.pathname.replace(/[^\/]+$/, '');
-    const shareUrl = `${baseUrl}view.html?c=${compressedData}`;
-    
-    navigator.clipboard.writeText(shareUrl);
-    alert("Ссылка скопирована! Можно отправлять.");
-}
-
-
-// --- 3. БИЛДЕР (ОТКРЫТКА) ---
 function updateUI() {
-    document.getElementById('slideCounter').innerText = `Карточка ${currentIndex + 1} / ${slides.length}`;
+    const wordCard = window.t('word_card') || "Карточка";
+    document.getElementById('slideCounter').innerText = `${wordCard} ${currentIndex + 1} / ${slides.length}`;
+    
     document.getElementById('prevBtn').disabled = currentIndex === 0;
     document.getElementById('nextBtn').disabled = currentIndex === slides.length - 1;
-
-    // НОВОЕ: Показываем поле названия только на 1-м слайде
-    const nameInput = document.getElementById('cardNameInput');
-    if (currentIndex === 0) {
-        nameInput.style.display = 'block';
-        nameInput.value = currentCardName; // Подтягиваем имя, если оно уже введено
-    } else {
-        nameInput.style.display = 'none';
-    }
-
-    // НОВОЕ: Отключаем кнопку удаления, если остался всего 1 слайд
     document.getElementById('deleteSlideBtn').disabled = slides.length === 1;
+
+    const nameInput = document.getElementById('cardNameInput');
+    const interactBlock = document.getElementById('interactiveFeaturesBlock');
+    if (currentIndex === 0) {
+        if(nameInput) nameInput.style.display = 'block';
+        if(interactBlock) interactBlock.style.display = 'block';
+    } else {
+        if(nameInput) nameInput.style.display = 'none';
+        if(interactBlock) interactBlock.style.display = 'none';
+    }
 
     const currentSlide = slides[currentIndex];
     document.getElementById('headerInput').value = currentSlide.header;
     document.getElementById('messageInput').value = currentSlide.message;
-
     const preview = document.getElementById('imagePreview');
     const placeholder = document.getElementById('imagePlaceholderText');
-    
     if (currentSlide.img) {
         preview.src = currentSlide.img; preview.style.display = 'block'; placeholder.style.display = 'none';
     } else {
@@ -268,52 +400,40 @@ function saveCurrentSlide() {
     slides[currentIndex].header = document.getElementById('headerInput').value;
     slides[currentIndex].message = document.getElementById('messageInput').value;
 }
-
 function prevSlide() { if (currentIndex > 0) { currentIndex--; updateUI(); } }
 function nextSlide() { if (currentIndex < slides.length - 1) { currentIndex++; updateUI(); } }
 function addSlide() { slides.push({ header: "", img: "", message: "" }); currentIndex = slides.length - 1; updateUI(); }
+function saveCardName() { currentCardName = document.getElementById('cardNameInput').value; }
 
-// НОВОЕ: Сохранение названия открытки
-function saveCardName() {
-    currentCardName = document.getElementById('cardNameInput').value;
-}
-
-// НОВОЕ: Удаление текущего слайда
 function deleteSlide() {
-    if (slides.length <= 1) return; // Защита: нельзя удалить последнюю карточку
-    
-    if(confirm("Точно удалить эту карточку?")) {
-        slides.splice(currentIndex, 1); // Удаляем из массива
-        
-        // Если удалили последнюю в списке, сдвигаемся на шаг назад
-        if (currentIndex >= slides.length) {
-            currentIndex = slides.length - 1;
-        }
+    if (slides.length <= 1) return;
+    const msg = window.t('confirm_del_slide') || "Удалить эту карточку?";
+    showConfirm(msg, () => {
+        slides.splice(currentIndex, 1);
+        if (currentIndex >= slides.length) currentIndex = slides.length - 1;
         updateUI();
-    }
+    });
 }
 
 function openGifModal() { document.getElementById('gifModal').style.display = 'flex'; }
 function closeGifModal() { document.getElementById('gifModal').style.display = 'none'; }
-
 function renderCategoryButtons() {
     const tagsContainer = document.getElementById('categoryTags');
+    if(!tagsContainer) return;
     tagsContainer.innerHTML = '';
     for (const key in myGifLibrary) {
         const btn = document.createElement('button');
-        btn.innerText = myGifLibrary[key].name;
-        btn.style.cssText = "padding: 8px 12px; border-radius: 15px; border: 1px solid #ff69b4; background: white; color: #ff69b4; cursor: pointer; transition: 0.2s;";
+        btn.innerText = window.t('cat_' + key) || myGifLibrary[key].name;
+        btn.style.cssText = "padding: 8px 12px; border-radius: 15px; border: 1px solid #ff69b4; background: white; color: #ff69b4; cursor: pointer;";
         btn.onclick = () => showGifsFromCategory(key);
         tagsContainer.appendChild(btn);
     }
 }
-
 function showGifsFromCategory(categoryKey) {
     const resultsContainer = document.getElementById('gifResults');
     resultsContainer.innerHTML = ''; 
     myGifLibrary[categoryKey].urls.forEach(imgUrl => {
-        const img = document.createElement('img');
-        img.src = imgUrl;
+        const img = document.createElement('img'); img.src = imgUrl;
         img.onclick = () => { slides[currentIndex].img = imgUrl; closeGifModal(); updateUI(); };
         resultsContainer.appendChild(img);
     });
@@ -323,307 +443,156 @@ function useCustomUrl() {
     if (url) { slides[currentIndex].img = url; closeGifModal(); updateUI(); }
 }
 
-
-// --- 4. ФИНАЛ, ОПЛАТА И ОТПРАВКА ---
-// НОВОЕ: Отображение счетчика бесплатных открыток
-function updateFreeCardsDisplay() {
-    let count = parseInt(localStorage.getItem('otkritka_free_cards_' + currentUser)) || 0;
-    const displayEl = document.getElementById('freeCardsDisplay');
-    if (displayEl) {
-        if (count > 0) {
-            displayEl.innerHTML = `🎁 У тебя есть <b>${count}</b> бесплатные открытки!`;
-            displayEl.style.display = 'block';
-        } else {
-            displayEl.style.display = 'none';
-        }
-    }
-}
-
-// НОВОЕ: Вспомогательная функция для сохранения в базу (чтобы не дублировать код)
-function saveCardToDatabase() {
-    let userCards = JSON.parse(localStorage.getItem('otkritka_cards_' + currentUser)) || [];
-    const isAlreadySaved = userCards.some(c => c.name === currentCardName && c.slides.length === slides.length);
-    
-    if (!isAlreadySaved) {
-        userCards.push({
-            id: Date.now(),
-            name: currentCardName,
-            bg: currentThemeBg,
-            emoji: currentThemeEmoji,
-            musicUrl: currentMusicUrl, // Обязательно сохраняем и музыку!
-            slides: JSON.parse(JSON.stringify(slides))
-        });
-        localStorage.setItem('otkritka_cards_' + currentUser, JSON.stringify(userCards));
-    }
-}
-
-// ОБНОВЛЕНО: Логика кнопки "Готово"
-// ОБНОВЛЕНО: Логика кнопки "Готово" со строгим списанием
-function finishCard() {
-    if (!currentCardName || currentCardName.trim() === "") {
-        alert("Пожалуйста, придумай название для открытки (на первой карточке)!");
-        currentIndex = 0; updateUI(); return;
-    }
-    if (slides.some(slide => !slide.img)) { 
-        alert("Пожалуйста, выбери картинки для всех карточек!"); return; 
-    }
-    
-    // Показываем модалку
-    document.getElementById('finishModal').style.display = 'flex';
-
-    // Читаем количество бесплатных попыток
-    let freeCards = parseInt(localStorage.getItem('otkritka_free_cards_' + currentUser)) || 0;
-
-    if (freeCards > 0) {
-        // ЕСЛИ ЕСТЬ БЕСПЛАТНЫЕ ПОПЫТКИ:
-        document.getElementById('paywallStep').style.display = 'none';
-        document.getElementById('actionStep').style.display = 'block';
-        
-        // Проверяем, не сохраняли ли мы ее уже (защита от двойного списания)
-        let userCards = JSON.parse(localStorage.getItem('otkritka_cards_' + currentUser)) || [];
-        const isAlreadySaved = userCards.some(c => c.name === currentCardName && c.slides.length === slides.length);
-        
-        if (!isAlreadySaved) {
-            saveCardToDatabase(); // Сохраняем в историю
-            freeCards--; // Списываем 1 попытку
-            localStorage.setItem('otkritka_free_cards_' + currentUser, freeCards); // Записываем остаток
-        }
-    } else {
-        // ЕСЛИ БЕСПЛАТНЫХ ПОПЫТОК НЕТ:
-        document.getElementById('paywallStep').style.display = 'block';
-        document.getElementById('actionStep').style.display = 'none';
-    }
-}
-
-function closeFinishModal() { 
-    document.getElementById('finishModal').style.display = 'none'; 
-}
-
-// ОБНОВЛЕНО: Симуляция оплаты с начислением бонуса
-function simulatePayment() {
-    document.getElementById('paywallStep').style.display = 'none';
-    document.getElementById('actionStep').style.display = 'block';
-    
-    // Сохраняем оплаченную открытку
-    saveCardToDatabase();
-    
-    // Начисляем 3 подарочные открытки на будущее
-    let freeCards = parseInt(localStorage.getItem('otkritka_free_cards_' + currentUser)) || 0;
-    freeCards += 3;
-    localStorage.setItem('otkritka_free_cards_' + currentUser, freeCards);
-    
-    alert("🎉 Оплата прошла успешно! В подарок вы получаете 3 бесплатные открытки!");
-}
-
-function goToDashboard() {
-    closeFinishModal();
-    showScreen('screen-dashboard');
-}
-
-
-// Кнопка скачивания из текущего билдера
-function downloadCard() {
-    const blob = new Blob([generateHtmlString(currentThemeBg, slides, currentThemeEmoji, currentMusicUrl)], { type: 'text/html' }); // Добавили эмодзи
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `${currentCardName}.html`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-}
-
-function downloadSavedCard(cardId) {
-    let userCards = JSON.parse(localStorage.getItem('otkritka_cards_' + currentUser)) || [];
-    const card = userCards.find(c => c.id === cardId);
-    
-    if(card) {
-        // Достаем музыку из сохраненной карточки (если ее нет, передаем пустую строку)
-        const music = card.musicUrl || ""; 
-        
-        // Передаем музыку 4-м параметром
-        const blob = new Blob([generateHtmlString(card.bg, card.slides, card.emoji, music)], { type: 'text/html' }); 
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); 
-        a.href = url; 
-        a.download = `${card.name}.html`;
-        
-        document.body.appendChild(a); 
-        a.click(); 
-        document.body.removeChild(a); 
-        URL.revokeObjectURL(url);
-    }
-}
-
-// Кнопка отправки напрямую
-async function shareCard() {
-    // 1. Укорачиваем названия ключей для экономии места
-    const shortData = {
-        b: currentThemeBg,
-        e: currentThemeEmoji, // Эмодзи
-        mu: currentMusicUrl,  // НОВОЕ: Упаковываем музыку в ссылку под ключом 'mu'
-        s: slides.map(slide => ({ h: slide.header, i: slide.img, m: slide.message }))
-    };
-
-    // 2. Сжимаем в строку
-    const compressedData = LZString.compressToEncodedURIComponent(JSON.stringify(shortData));
-    
-    // 3. Формируем короткую ссылку
-    const baseUrl = window.location.origin + window.location.pathname.replace(/[^\/]+$/, '');
-    const shareUrl = `${baseUrl}view.html?c=${compressedData}`;
-
-    // 4. Отправляем
-    if (navigator.share) {
-        try { 
-            await navigator.share({ title: currentCardName, text: 'Смотри, какую открытку я сделал! 💖', url: shareUrl }); 
-        } catch (err) { 
-            console.log('Отмена отправки', err); 
-        }
-    } else {
-        navigator.clipboard.writeText(shareUrl);
-        alert("Ссылка скопирована! Отправь её другу: \n\n" + shareUrl);
-    }
-}
-
-
-
-// --- ОКНО ВЫБОРА МУЗЫКИ ---
-// --- ОКНО ВЫБОРА МУЗЫКИ (С ПРОСЛУШИВАНИЕМ И ТЕГАМИ) ---
-
+// --- МУЗЫКА ---
 function openMusicModal() {
     document.getElementById('musicModal').style.display = 'flex';
+    document.getElementById('musicSearchInput').value = ''; 
+    document.getElementById('musicTags').style.display = 'flex'; 
     renderMusicTags();
-    showTracksFromCategory('romantic'); // По умолчанию открываем романтику
+    showTracksFromCategory('romantic');
 }
-
 function closeMusicModal() {
     document.getElementById('musicModal').style.display = 'none';
-    // Обязательно выключаем музыку при закрытии окна!
     const player = document.getElementById('previewPlayer');
-    player.pause();
+    if(player) player.pause();
     currentPlayingUrl = "";
 }
-
 function renderMusicTags() {
     const tagsContainer = document.getElementById('musicTags');
+    if(!tagsContainer) return;
     tagsContainer.innerHTML = '';
-    
     for (const key in myMusicLibrary) {
         const btn = document.createElement('button');
-        btn.innerText = myMusicLibrary[key].name;
-        btn.style.cssText = "padding: 8px 12px; border-radius: 15px; border: 1px solid #3498db; background: white; color: #3498db; cursor: pointer; transition: 0.2s;";
+        btn.innerText = window.t('cat_' + key) || myMusicLibrary[key].name;
+        btn.style.cssText = "padding: 8px 12px; border-radius: 15px; border: 1px solid #3498db; background: white; color: #3498db; cursor: pointer;";
         btn.onclick = () => {
-            // Подсвечиваем активный тег
-            Array.from(tagsContainer.children).forEach(b => b.style.background = 'white');
-            Array.from(tagsContainer.children).forEach(b => b.style.color = '#3498db');
-            btn.style.background = '#3498db';
-            btn.style.color = 'white';
-            
+            Array.from(tagsContainer.children).forEach(b => { b.style.background = 'white'; b.style.color = '#3498db';});
+            btn.style.background = '#3498db'; btn.style.color = 'white';
             showTracksFromCategory(key);
         };
         tagsContainer.appendChild(btn);
     }
 }
-
 function showTracksFromCategory(categoryKey) {
     const container = document.getElementById('musicList');
     container.innerHTML = ''; 
-    
     myMusicLibrary[categoryKey].tracks.forEach(track => {
         const card = document.createElement('div');
-        // Красивый стиль карточки трека
-        card.style.cssText = "display: flex; align-items: center; gap: 10px; background: #f8f9fa; padding: 10px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);";
-        
-        // Кнопка Play/Pause и картинка
+        card.style.cssText = "display: flex; align-items: center; gap: 10px; background: #f8f9fa; padding: 10px; border-radius: 15px;";
         const playIcon = currentPlayingUrl === track.url && track.url !== "" ? '⏸️' : '▶️';
-        
+        const safeId = track.url ? track.url.replace(/[^a-zA-Z0-9]/g, '') : '';
         card.innerHTML = `
             <img src="${track.cover}" style="width: 50px; height: 50px; border-radius: 10px; object-fit: cover;">
-            <div style="flex-grow: 1;">
-                <div style="font-weight: bold; color: #333; font-size: 14px;">${track.name}</div>
-            </div>
-            ${track.url ? `<button onclick="togglePreview('${track.url}')" style="background:none; border:none; font-size:24px; cursor:pointer;" id="playBtn-${track.url.replace(/[^a-zA-Z0-9]/g, '')}">${playIcon}</button>` : ''}
+            <div style="flex-grow: 1;"><div style="font-weight: bold; font-size: 14px;">${track.name}</div></div>
+            ${track.url ? `<button onclick="togglePreview('${track.url}')" style="background:none; border:none; font-size:24px; cursor:pointer;" id="playBtn-${safeId}">${playIcon}</button>` : ''}
             <button onclick="confirmMusicSelection('${track.url}', '${track.name}')" style="background: #2ecc71; color: white; border: none; padding: 8px 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">Выбрать</button>
         `;
         container.appendChild(card);
     });
 }
-
-// Предпрослушивание трека
 function togglePreview(url) {
     const player = document.getElementById('previewPlayer');
-    const safeId = url.replace(/[^a-zA-Z0-9]/g, ''); // Делаем ID безопасным
-
-    // 1. Сбрасываем все кнопки Play обратно на ▶️
-    document.querySelectorAll('[id^="playBtn-"]').forEach(btn => {
-        btn.innerText = '▶️';
-    });
-
-    if (currentPlayingUrl === url) {
-        // Если нажали на то, что уже играет - ставим на паузу
-        player.pause();
-        currentPlayingUrl = "";
-    } else {
-        // Если включили новый трек
-        player.src = url;
-        player.play();
-        currentPlayingUrl = url;
-        
-        // Меняем иконку именно у нажатой кнопки на ⏸️
-        const currentBtn = document.getElementById(`playBtn-${safeId}`);
-        if (currentBtn) currentBtn.innerText = '⏸️';
-    }
+    const safeId = url.replace(/[^a-zA-Z0-9]/g, '');
+    document.querySelectorAll('[id^="playBtn-"]').forEach(btn => btn.innerText = '▶️');
+    if (currentPlayingUrl === url) { player.pause(); currentPlayingUrl = ""; } 
+    else { player.src = url; player.play(); currentPlayingUrl = url; const currentBtn = document.getElementById(`playBtn-${safeId}`); if (currentBtn) currentBtn.innerText = '⏸️'; }
 }
-
-// Подтверждение выбора музыки
 function confirmMusicSelection(url, name) {
     customSelectedMusicUrl = url;
-    
-    // Обновляем главную кнопку в меню "Свой дизайн"
     const customBtn = document.getElementById('customMusicBtn');
-    customBtn.innerText = url ? name : 'Без музыки 🔇';
-    customBtn.style.background = url ? '#2ecc71' : '#95a5a6'; 
-    
+    if(customBtn) {
+        customBtn.innerText = url ? name : 'Без музыки 🔇';
+        customBtn.style.background = url ? '#2ecc71' : '#95a5a6'; 
+    }
     closeMusicModal();
 }
-
-// --- ДОБАВИТЬ ВНИЗ ФАЙЛА builder.js ---
-
-// Проверка и добавление пользовательской ссылки на музыку
 function useMusicCustomUrl() {
     const urlInput = document.getElementById('customMusicUrlInput');
     const url = urlInput.value.trim();
     const btn = document.getElementById('testMusicBtn');
-
     if (!url) return;
-
-    // Включаем режим загрузки
-    btn.innerText = "⏳...";
-    btn.disabled = true;
-    urlInput.disabled = true;
-
-    // Создаем тестовый аудиоплеер для проверки ссылки
+    btn.innerText = "⏳..."; btn.disabled = true; urlInput.disabled = true;
     const testAudio = new Audio();
-    
-    // Если музыка загрузилась и готова играть:
     testAudio.oncanplay = () => {
-        btn.innerText = "Ок";
-        btn.disabled = false;
-        urlInput.disabled = false;
-        
-        // Останавливаем предпрослушку из базы, если она играла
-        document.getElementById('previewPlayer').pause();
-        currentPlayingUrl = "";
-        
-        // Подтверждаем выбор!
-        confirmMusicSelection(url, "Своя музыка 🎵");
-        urlInput.value = '';
+        btn.innerText = "Ок"; btn.disabled = false; urlInput.disabled = false;
+        document.getElementById('previewPlayer').pause(); currentPlayingUrl = "";
+        confirmMusicSelection(url, "Своя музыка 🎵"); urlInput.value = '';
     };
-
-    // Если сервер сбросил соединение, файл не найден или это не прямая ссылка:
     testAudio.onerror = () => {
-        alert("❌ Ошибка: Не удалось загрузить музыку.\n\nУбедись, что ссылка ведет напрямую на файл .mp3, а не на страницу с плеером (как YouTube или Яндекс.Музыка), и сервер разрешает скачивание.");
-        btn.innerText = "Ок";
-        btn.disabled = false;
-        urlInput.disabled = false;
+        showToast(window.t('toast_music_err') || "Ошибка", "error");
+        btn.innerText = "Ок"; btn.disabled = false; urlInput.disabled = false;
+    };
+    testAudio.src = url;
+}
+
+// --- ФИНАЛ И ОТПРАВКА ---
+function finishCard() {
+    const nInput = document.getElementById('cardNameInput');
+    const finalName = nInput ? nInput.value.trim() : currentCardName;
+    if (!finalName) { showToast(window.t('toast_need_name') || "Напишите название (на 1-й карте)!", "error"); currentIndex = 0; updateUI(); return; }
+    if (slides.some(slide => !slide.img)) { showToast(window.t('toast_need_img') || "Выберите все картинки!", "error"); return; }
+    document.getElementById('finishModal').style.display = 'flex';
+}
+function goToDashboard() { document.getElementById('finishModal').style.display = 'none'; showScreen('screen-dashboard'); renderSavedCards(); }
+
+async function shareCard() {
+    if (currentSavedUrl) {
+        if (navigator.share) { try { await navigator.share({ title: currentCardName, url: currentSavedUrl }); } catch (err) {} } 
+        else { navigator.clipboard.writeText(currentSavedUrl); showToast(window.t('toast_link_copied') || "Ссылка скопирована!", "success"); }
+        return; 
+    }
+
+    if (isSavingCard) return;
+    isSavingCard = true;
+
+    const nInput = document.getElementById('cardNameInput');
+    const hmInput = document.getElementById('hiddenMessageInput');
+    const rbCheck = document.getElementById('runawayBtnCheckbox');
+    
+    const cardData = {
+        n: (nInput && nInput.value.trim() !== "") ? nInput.value.trim() : (currentCardName || "Без названия"), 
+        b: currentThemeBg || "#ffffff",
+        e: currentThemeEmoji || "✨",
+        mu: currentMusicUrl || "",
+        hm: hmInput ? hmInput.value.trim() : "",
+        rb: rbCheck ? rbCheck.checked : false,
+        s: slides.map(slide => ({ h: slide.header || "", i: slide.img || "", m: slide.message || "" }))
     };
 
-    // Пытаемся загрузить (именно эта строчка запускает проверку)
-    testAudio.src = url;
+    const buttonsContainer = document.querySelector('#finishModal .generate-btn');
+    const oldText = buttonsContainer ? buttonsContainer.innerText : "Отправить";
+    if (buttonsContainer) buttonsContainer.innerText = "⏳...";
+
+    try {
+        const token = localStorage.getItem('otkritka_token');
+        if (!token) { showToast(window.t('toast_not_auth') || "Вы не авторизованы!", "error"); return; }
+
+        const response = await fetch(`${API_URL}/api/cards`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(cardData)
+        });
+
+        if (response.status === 403) { document.getElementById('finishModal').style.display = 'none'; openOutOfCardsModal(); return; }
+        if (!response.ok) throw new Error("Ошибка сервера");
+
+        const data = await response.json();
+        const baseUrl = window.location.origin + window.location.pathname.replace(/[^\/]+$/, '');
+        currentSavedUrl = `${baseUrl}view.html?id=${data.short_id}`;
+
+        fetchUserProfile(); 
+        
+        if (navigator.share) { try { await navigator.share({ title: cardData.n, url: currentSavedUrl }); } catch (err) {} } 
+        else { navigator.clipboard.writeText(currentSavedUrl); showToast(window.t('toast_link_copied') || "Ссылка скопирована!", "success"); }
+    } catch (err) { showToast(window.t('toast_save_err') || "Ошибка", "error"); } 
+    finally { if (buttonsContainer) buttonsContainer.innerText = oldText; isSavingCard = false; }
+}
+
+function downloadCard() {
+    const hmInput = document.getElementById('hiddenMessageInput');
+    const rbCheck = document.getElementById('runawayBtnCheckbox');
+    const blob = new Blob([generateHtmlString(currentThemeBg, slides, currentThemeEmoji, currentMusicUrl, hmInput ? hmInput.value : "", rbCheck ? rbCheck.checked : false)], { type: 'text/html' }); 
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `${currentCardName || 'Открытка'}.html`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }

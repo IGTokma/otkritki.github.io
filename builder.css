@@ -155,3 +155,180 @@ textarea { resize: vertical; min-height: 120px; }
 .icon-btn:hover { background: #e4e6e9; transform: scale(1.05); }
 .delete-icon { background: #fceceb; }
 .delete-icon:hover { background: #fadbd8; }
+
+/* --- ДИЗАЙН СОХРАНЕННЫХ ОТКРЫТОК В ДАШБОРДЕ --- */
+.saved-card-item {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid #f0f0f0;
+}
+
+.saved-card-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+}
+
+.saved-card-preview {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 28px;
+    flex-shrink: 0;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+}
+
+.saved-card-info {
+    flex-grow: 1;
+    padding: 0 15px;
+    overflow: hidden;
+}
+
+.saved-card-name {
+    font-weight: bold;
+    color: #2c3e50;
+    font-size: 16px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.saved-card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.saved-btn {
+    border: none;
+    padding: 8px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    transition: opacity 0.2s, transform 0.1s;
+}
+
+.saved-btn:active { transform: scale(0.95); }
+.saved-btn:hover { opacity: 0.85; }
+
+.share-btn { 
+    background: #3498db; 
+    color: white; 
+}
+
+.delete-btn { 
+    background: #ff4757; 
+    color: white; 
+    padding: 8px 12px; 
+}
+
+/* --- СИСТЕМА УВЕДОМЛЕНИЙ (TOASTS) --- */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 99999; /* Поверх всего */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    background: #fff;
+    color: #333;
+    padding: 15px 20px;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    min-width: 250px;
+    max-width: 350px;
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 5px solid gray; /* Дефолтный цвет */
+    cursor: pointer;
+    
+    /* Анимации появления и исчезновения */
+    animation: toastFadeIn 0.4s ease forwards;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Цвета по типам */
+.toast.success { border-left-color: #2ecc71; color: #155724; background-color: #d4edda; }
+.toast.error   { border-left-color: #e74c3c; color: #721c24; background-color: #f8d7da; }
+
+/* Анимация появления */
+@keyframes toastFadeIn {
+    from { opacity: 0; transform: translateY(-20px) scale(0.9); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Класс для исчезновения */
+.toast.fade-out {
+    opacity: 0;
+    transform: translateX(100px);
+}
+
+/* --- МОБИЛЬНЫЙ ФОРМАТ ПРИЛОЖЕНИЯ --- */
+body {
+    background-color: #dcdde1; /* Темный фон по бокам на ПК */
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+}
+
+/* Ограничиваем главные экраны */
+.screen {
+    max-width: 480px !important;
+    width: 100%;
+    min-height: 100vh;
+    background: #f0f2f5;
+    box-shadow: 0 0 30px rgba(0,0,0,0.1);
+    position: relative;
+    box-sizing: border-box;
+    margin: 0 auto;
+}
+
+/* Ограничиваем все всплывающие окна (Модалки) */
+.gif-modal {
+    max-width: 480px !important;
+    width: 100%;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* Ограничиваем окно подтверждения (Confirm) */
+#confirmModal {
+    max-width: 350px !important;
+    width: 90% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+}
+
+/* Уведомления (тосты) тоже сдвигаем в пределы мобильного экрана */
+.toast-container {
+    max-width: 480px;
+    width: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    box-sizing: border-box;
+    padding: 0 15px;
+    align-items: flex-end; /* Чтобы тосты прижимались к правому краю самого телефона */
+}
+.toast {
+    width: auto;
+    max-width: 100%;
+}

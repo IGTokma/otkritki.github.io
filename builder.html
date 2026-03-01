@@ -4,156 +4,206 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Конструктор Живой Открытки</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <link rel="stylesheet" href="builder.css">
 </head>
 <body>
 
-    <!-- ЭКРАН 1: АВТОРИЗАЦИЯ -->
-    <div id="screen-auth" class="screen">
-        <div class="auth-box">
-            <h2>Вход в профиль 💌</h2>
-            <input type="text" id="usernameInput" placeholder="Твое имя или никнейм">
-            <button class="generate-btn" style="margin-top: 5px;" onclick="login()">Войти / Начать</button>
+    <div id="screen-auth" class="screen active">
+        <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 10;">
+            <button class="lang-btn" data-lang="ru" onclick="changeLang('ru')" style="background:none; border:none; cursor:pointer; font-size:24px; transition: 0.2s;">🇷🇺</button>
+            <button class="lang-btn" data-lang="en" onclick="changeLang('en')" style="background:none; border:none; cursor:pointer; font-size:24px; transition: 0.2s;">🇬🇧</button>
+            <button class="lang-btn" data-lang="kz" onclick="changeLang('kz')" style="background:none; border:none; cursor:pointer; font-size:24px; transition: 0.2s;">🇰🇿</button>
+        </div>
+
+        <div class="card" style="max-height: 420px; justify-content: center;">
+            <h2 style="margin-bottom: 5px;" data-i18n="auth_title">Вход в аккаунт 🔐</h2>
+            <p style="text-align: center; color: #777; font-size: 14px; margin-bottom: 20px;" data-i18n="auth_sub">Чтобы сохранять открытки навсегда</p>
+            
+            <input type="text" id="usernameInput" data-i18n="login_ph" placeholder="Логин (без пробелов)" style="width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 10px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px;">
+            <input type="password" id="passwordInput" data-i18n="pass_ph" placeholder="Пароль" style="width: 100%; padding: 12px; margin-bottom: 25px; border-radius: 10px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px;">
+            
+            <button class="generate-btn" style="background: #3498db; margin-bottom: 12px; margin-top: 0;" onclick="loginUser()" data-i18n="btn_in">Войти ➔</button>
+            <button class="generate-btn" style="background: #2ecc71; margin-top: 0;" onclick="registerUser()" data-i18n="btn_up">Создать аккаунт ✨</button>
         </div>
     </div>
 
-    <!-- ЭКРАН 2: ДАШБОРД (ВЫБОР ТЕМЫ) -->
     <div id="screen-dashboard" class="screen">
-        <div class="dashboard-header">
-            <div style="font-weight: bold; font-size: 18px;">Привет, <span id="userNameDisplay">Имя</span>! 👋</div>
-            <button class="logout-btn" onclick="logout()">Выйти</button>
+        <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+            
+            <h2 style="margin: 0; font-size: 20px; color: #2c3e50;"><span id="greetingTextBase">Привет, </span><span id="userNameDisplay">Имя</span>! 👋</h2>
+            
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <div style="background: #f0f2f5; color: #2c3e50; padding: 8px 12px; border-radius: 10px; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                    💌 <span id="balanceDisplay">0</span>
+                </div>
+                <button onclick="openShopModal()" style="background: #f39c12; color: white; border: none; border-radius: 10px; padding: 8px 15px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" data-i18n="shop">Магазин 🛍️</button>
+                <button onclick="logout()" style="background: #e74c3c; color: white; border: none; border-radius: 10px; padding: 8px 15px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" data-i18n="logout">Выйти</button>
+                
+                <div style="display: flex; gap: 5px; background: #f0f2f5; padding: 4px 8px; border-radius: 10px;">
+                    <button class="lang-btn" data-lang="ru" onclick="changeLang('ru')" style="background:none; border:none; cursor:pointer; font-size:16px;">🇷🇺</button>
+                    <button class="lang-btn" data-lang="en" onclick="changeLang('en')" style="background:none; border:none; cursor:pointer; font-size:16px;">🇬🇧</button>
+                    <button class="lang-btn" data-lang="kz" onclick="changeLang('kz')" style="background:none; border:none; cursor:pointer; font-size:16px;">🇰🇿</button>
+                </div>
+            </div>
         </div>
 
         <div id="freeCardsDisplay" style="display: none; background: #e8f8f5; color: #16a085; padding: 12px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-size: 15px; border: 1px dashed #1abc9c; width: 100%; box-sizing: border-box;"></div>
 
-        <h3 style="color: #333; margin-top: 0; align-self: flex-start;">Для кого создаем открытку?</h3>
-        <!-- Сетка плиток (Темы) -->
+        <h3 style="color: #333; margin-top: 0; align-self: flex-start;" data-i18n="themes_title">Для кого создаем открытку?</h3>
         <div class="themes-grid" id="themesContainer"></div>
 
-        <!-- Секция сохраненных открыток -->
         <div class="saved-cards-section">
-            <h3 style="color: #333; margin-top: 0;">Мои открытки 🗂️</h3>
-            <div id="savedCardsContainer">
-                <!-- Сюда скрипт вставит купленные открытки -->
-            </div>
+            <h3 style="color: #333; margin-top: 0;" data-i18n="my_cards">Мои открытки 🗂️</h3>
+            <div id="savedCardsContainer"></div>
         </div>
     </div>
 
-    <!-- ЭКРАН 3: КОНСТРУКТОР -->
     <div id="screen-builder" class="screen">
-        <button class="nav-btn" style="background: #95a5a6; margin-bottom: 15px; align-self: flex-start;" onclick="showScreen('screen-dashboard')">⬅ Назад к темам</button>
+        <button class="nav-btn" style="background: #95a5a6; margin-bottom: 15px; align-self: flex-start;" onclick="showScreen('screen-dashboard')" data-i18n="back_themes">⬅ Назад к темам</button>
 
         <div class="builder-container">
-            <div class="gif-modal" id="customThemeModal"> <!-- Кастомная тема -->
-                <div class="close-modal" onclick="closeCustomThemeModal()">✖ Закрыть</div>
-                <h3 style="margin-top: 0;">Свой дизайн ✨</h3>
-                
-                <div class="card-editor" style="gap: 10px;">
-                    <label style="font-weight: bold; color: #555;">Кому открытка?</label>
-                    <input type="text" id="customThemeName" placeholder="Например: Любимому коту 🐈">
-                    
-                    <label style="font-weight: bold; color: #555; margin-top: 10px;">Музыка фона</label>
-                    <button id="customMusicBtn" style="width: 100%; background: #3498db; color: white; padding: 12px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;" onclick="openMusicModal()">🎵 Выбрать музыку</button>
-                    <button class="generate-btn" style="margin-top: 20px;" onclick="startCustomTheme()">Создать ➔</button>
-                    
-                    <label style="font-weight: bold; color: #555; margin-top: 10px;">Эмодзи для фона (1-2 шт)</label>
-                    <input type="text" id="customThemeEmoji" placeholder="Например: 🐾" maxlength="4">
-                    
-                    <label style="font-weight: bold; color: #555; margin-top: 10px;">Цвет фона</label>
-                    <div style="display: flex; gap: 15px; align-items: center; background: #fff0f5; padding: 10px; border-radius: 10px;">
-                        <input type="color" id="customThemeColor" value="#ffb6c1" style="width: 50px; height: 50px; border: none; border-radius: 10px; cursor: pointer;">
-                        <span id="customColorHex" style="color: #888; font-family: monospace; font-size: 16px;">#ffb6c1</span>
-                    </div>
-                    
-                    <button class="generate-btn" style="margin-top: 20px;" onclick="startCustomTheme()">Создать ➔</button>
-                </div>
-            </div>
-
             <div class="header">
                 <button class="nav-btn" id="prevBtn" onclick="prevSlide()">&lt;</button>
                 <span id="slideCounter">Карточка 1 / 1</span>
                 <button class="nav-btn" id="nextBtn" onclick="nextSlide()">&gt;</button>
-                <button class="add-btn" onclick="addSlide()">+ Добавить</button>
+                <button class="add-btn" onclick="addSlide()" data-i18n="add_slide">+ Добавить</button>
             </div>
 
             <div class="card-editor">
-                <!-- Поле названия (будет видно только на 1-м слайде) -->
-                <input type="text" id="cardNameInput" placeholder="Название открытки (напр: Маме)" oninput="saveCardName()" style="border: 2px solid #ff69b4; background: #fff0f5;">
-                
-                <input type="text" id="headerInput" placeholder="Заголовок (например: Привет!)" oninput="saveCurrentSlide()">
+                <input type="text" id="cardNameInput" data-i18n="card_name_ph" placeholder="Название открытки (напр: Маме)" oninput="saveCardName()" style="border: 2px solid #ff69b4; background: #fff0f5;">
+                <div id="interactiveFeaturesBlock" style="background: #fff4f4; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px dashed #ff9ff3;">
+                    <h4 style="margin-top: 0; margin-bottom: 10px; color: #f368e0;" data-i18n="int_features">Интерактивные фишки 🪄</h4>
+                    <input type="text" id="hiddenMessageInput" data-i18n="hidden_msg_ph" placeholder="Скрытое послание (появится по клику на 💖)" style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: 1px solid #ff9ff3; box-sizing: border-box;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #555; font-size: 14px; font-weight: bold;">
+                        <input type="checkbox" id="runawayBtnCheckbox" style="transform: scale(1.2);"> <span data-i18n="runaway_btn">Добавить убегающую кнопку "Закрыть" 🏃‍♂️</span>
+                    </label>
+                </div>
+                <input type="text" id="headerInput" data-i18n="header_ph" placeholder="Заголовок (например: Привет!)" oninput="saveCurrentSlide()">
                 
                 <div class="image-selector" onclick="openGifModal()">
-                    <span id="imagePlaceholderText">Нажми, чтобы выбрать GIF</span>
+                    <span id="imagePlaceholderText" data-i18n="img_ph">Нажми, чтобы выбрать GIF</span>
                     <img id="imagePreview" src="" alt="Выбранная гифка" style="display: none;">
                 </div>
 
-                <textarea id="messageInput" placeholder="Основной текст сообщения..." oninput="saveCurrentSlide()"></textarea>
-
-                <!-- Кнопка удаления -->
-                <button class="delete-btn" id="deleteSlideBtn" onclick="deleteSlide()">🗑️ Удалить эту карточку</button>
+                <textarea id="messageInput" data-i18n="msg_ph" placeholder="Основной текст сообщения..." oninput="saveCurrentSlide()"></textarea>
+                <button class="delete-btn" id="deleteSlideBtn" onclick="deleteSlide()" data-i18n="delete_card">🗑️ Удалить эту карточку</button>
             </div>
 
-            <button class="generate-btn" onclick="finishCard()">Готово! (Перейти к отправке)</button>
+            <button class="generate-btn" onclick="finishCard()" data-i18n="btn_ready">Готово! (Перейти к отправке)</button>
+        </div> 
+    </div> 
 
-            <!-- Модалка ГИФОК -->
-            <div class="gif-modal" id="gifModal">
-                <div class="close-modal" onclick="closeGifModal()">✖ Закрыть</div>
-                <h3 style="margin-top: 0;">Выбери категорию:</h3>
-                <div id="categoryTags" class="tags-container"></div>
-                <div class="custom-url-box">
-                    <input type="text" id="customUrlInput" placeholder="Или вставь свою ссылку на картинку...">
-                    <button onclick="useCustomUrl()">Ок</button>
-                </div>
-                <div class="gif-grid" id="gifResults"></div>
-            </div>
-
-            <!-- Модалка ФИНАЛА (Оплата/Скачивание) -->
-            <div class="gif-modal" id="finishModal" style="z-index: 110;">
-                <div id="paywallStep">
-                    <h2 style="text-align: center; margin-top:0;">Открытка готова! 🎉</h2>
-                    <p style="text-align: center; color: #555;">Оплатите, чтобы скачать или отправить.</p>
-                    <button class="generate-btn" style="background: #f1c40f; color: #333;" onclick="simulatePayment()">Оплатить 99₽ (Заглушка)</button>
-                    <button class="generate-btn" style="background: #95a5a6; margin-top: 10px;" onclick="closeFinishModal()">⬅ Назад к редактированию</button>
-                </div>
-
-                <div id="actionStep" style="display: none; text-align: center;">
-                    <h2 style="margin-top:0;">Успешно! 💖</h2>
-                    <div style="display: flex; gap: 10px; flex-direction: column;">
-                        <button class="generate-btn" style="margin-top: 0; background: #25D366;" onclick="shareCard()">📲 Отправить в чат</button>
-                        <button class="generate-btn" style="margin-top: 0; background: #3498db;" onclick="downloadCard()">📥 Скачать файл</button>
-                        <button class="generate-btn" style="margin-top: 0; background: #95a5a6;" onclick="goToDashboard()">🏠 На главную</button>
-                    </div>
+    <div class="gif-modal" id="customThemeModal" style="z-index: 105;">
+        <div class="close-modal" onclick="closeCustomThemeModal()" data-i18n="close_btn">✖ Закрыть</div>
+        <h3 style="margin-top: 0;" data-i18n="custom_design">Свой дизайн ✨</h3>
+        <div class="card-editor" style="gap: 10px;">
+            <label style="font-weight: bold; color: #555;" data-i18n="who_is_card">Кому открытка?</label>
+            <input type="text" id="customThemeName" placeholder="Например: Любимому коту 🐈">
+            
+            <label style="font-weight: bold; color: #555; margin-top: 10px;" data-i18n="bg_music">Музыка фона</label>
+            <button id="customMusicBtn" style="width: 100%; background: #3498db; color: white; padding: 12px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;" onclick="openMusicModal()" data-i18n="choose_music">🎵 Выбрать музыку</button>
+            
+            <label style="font-weight: bold; color: #555; margin-top: 10px;" data-i18n="bg_emoji">Эмодзи для фона (1-2 шт)</label>
+            <input type="text" id="customThemeEmoji" placeholder="Например: 🐾" maxlength="4" oninput="this.value = this.value.replace(/[a-zA-Zа-яА-Я0-9\s.,!?]/g, '')">
+            
+            <label style="font-weight: bold; color: #555; margin-top: 10px;" data-i18n="bg_color">Цвет фона</label>
+            <div style="display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap;" id="colorPresetsContainer">
+                <div style="width: 35px; height: 35px; border-radius: 50%; cursor: pointer; background: #ffb6c1; border: 1px solid rgba(0,0,0,0.1);" onclick="setCustomColor('#ffb6c1')"></div>
+                <div style="width: 35px; height: 35px; border-radius: 50%; cursor: pointer; background: #a8e6cf; border: 1px solid rgba(0,0,0,0.1);" onclick="setCustomColor('#a8e6cf')"></div>
+                <div style="width: 35px; height: 35px; border-radius: 50%; cursor: pointer; background: #ffd3b6; border: 1px solid rgba(0,0,0,0.1);" onclick="setCustomColor('#ffd3b6')"></div>
+                <div style="width: 35px; height: 35px; border-radius: 50%; cursor: pointer; background: #a6c1ee; border: 1px solid rgba(0,0,0,0.1);" onclick="setCustomColor('#a6c1ee')"></div>
+                <div style="width: 35px; height: 35px; border-radius: 50%; cursor: pointer; background: #fdfd96; border: 1px solid rgba(0,0,0,0.1);" onclick="setCustomColor('#fdfd96')"></div>
+                <div style="position: relative; width: 35px; height: 35px; border-radius: 50%; overflow: hidden; border: 2px dashed #ccc; cursor: pointer; display: flex; align-items: center; justify-content: center; background: #fff;" title="Свой цвет">
+                    🎨
+                    <input type="color" onchange="setCustomColor(this.value)" style="opacity: 0; position: absolute; top: -10px; left: -10px; width: 200%; height: 200%; cursor: pointer;">
                 </div>
             </div>
-            <div class="gif-modal" id="musicModal" style="z-index: 105;">
-                <div class="close-modal" onclick="closeMusicModal()">✖ Закрыть</div>
-                <h3 style="margin-top: 0;">Выбери музыку 🎵</h3>
-                
-                <div class="custom-url-box" style="margin-bottom: 15px;">
-                    <input type="text" id="musicSearchInput" placeholder="Найти песню..." onkeypress="if(event.key === 'Enter') searchOnlineMusic()">
-                    <button onclick="searchOnlineMusic()" style="background: #9b59b6;">Поиск 🔍</button>
-                </div>
+            <div style="margin-top: 5px; color: #888; font-family: monospace; font-size: 14px;">Выбран: <span id="customColorHex">#ffb6c1</span></div>
 
-                <div id="musicTags" class="tags-container"></div>
-                
-                <div class="custom-url-box" style="margin-top: 5px; margin-bottom: 10px;">
-                    <input type="text" id="customMusicUrlInput" placeholder="Ссылка на .mp3 файл (http://...)">
-                    <button id="testMusicBtn" onclick="useMusicCustomUrl()" style="min-width: 80px;">Ок</button>
-                </div>
-                
-                <div id="musicList" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-bottom: 20px;">
-                    </div>
+            <button class="generate-btn" style="margin-top: 20px;" onclick="startCustomTheme()" data-i18n="btn_create">Создать ➔</button>
+        </div>
+    </div>
 
-                <audio id="previewPlayer" src=""></audio>
+    <div class="gif-modal" id="gifModal" style="z-index: 105;">
+        <div class="close-modal" onclick="closeGifModal()" data-i18n="close_btn">✖ Закрыть</div>
+        <h3 style="margin-top: 0;" data-i18n="choose_cat">Выбери категорию:</h3>
+        <div id="categoryTags" class="tags-container"></div>
+        <div class="custom-url-box">
+            <input type="text" id="customUrlInput" data-i18n="custom_url_ph" placeholder="Или вставь свою ссылку...">
+            <button onclick="useCustomUrl()" data-i18n="btn_ok">Ок</button>
+        </div>
+        <div class="gif-grid" id="gifResults"></div>
+    </div>
+
+    <div class="gif-modal" id="musicModal" style="z-index: 106;">
+        <div class="close-modal" onclick="closeMusicModal()" data-i18n="close_btn">✖ Закрыть</div>
+        <h3 style="margin-top: 0;" data-i18n="music_title">Выбери музыку 🎵</h3>
+        <div class="custom-url-box" style="margin-bottom: 15px;">
+            <input type="text" id="musicSearchInput" data-i18n="music_search_ph" placeholder="Найти песню..." onkeypress="if(event.key === 'Enter') searchOnlineMusic()">
+            <button onclick="searchOnlineMusic()" style="background: #9b59b6;" data-i18n="music_search_btn">Поиск 🔍</button>
+        </div>
+        <div id="musicTags" class="tags-container"></div>
+        <div class="custom-url-box" style="margin-top: 5px; margin-bottom: 10px;">
+            <input type="text" id="customMusicUrlInput" data-i18n="music_url_ph" placeholder="Ссылка на .mp3 файл">
+            <button id="testMusicBtn" onclick="useMusicCustomUrl()" style="min-width: 80px;" data-i18n="btn_ok">Ок</button>
+        </div>
+        <div id="musicList" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-bottom: 20px;"></div>
+        <audio id="previewPlayer" src=""></audio>
+    </div>
+
+    <div class="gif-modal" id="finishModal" style="z-index: 110;">
+        <div id="actionStep" style="text-align: center;">
+            <h2 style="margin-top:0;" data-i18n="card_ready">Открытка готова! 💖</h2>
+            <div style="display: flex; gap: 10px; flex-direction: column;">
+                <button class="generate-btn" style="margin-top: 0; background: #25D366;" onclick="shareCard()" data-i18n="send_chat">📲 Отправить в чат</button>
+                <button class="generate-btn" style="margin-top: 0; background: #3498db;" onclick="downloadCard()" data-i18n="download_file">📥 Скачать файл</button>
+                <button class="generate-btn" style="margin-top: 0; background: #95a5a6;" onclick="goToDashboard()" data-i18n="go_home">🏠 На главную</button>
             </div>
         </div>
     </div>
 
+    <div class="gif-modal" id="shopModal" style="z-index: 115; text-align: center;">
+        <div class="close-modal" onclick="closeShopModal()" data-i18n="close_btn">✖ Закрыть</div>
+        <h3 style="margin-top: 0; font-size: 24px;" data-i18n="shop_title">Магазин Открыток 🛍️</h3>
+        
+        <div id="shopPromoBanner" style="background: #dff9fb; color: #22a6b3; padding: 10px; border-radius: 10px; font-size: 14px; margin-bottom: 20px; font-weight: bold;" data-i18n="shop_promo">🎁 Первая покупка дает +3 бонусные открытки бесплатно!</div>
+        
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button onclick="simulatePurchase(5)" data-i18n="buy_5" style="background: #3498db; padding: 15px; border-radius: 12px; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer;">5 шт. — 99 ₽</button>
+            <button onclick="simulatePurchase(10)" data-i18n="buy_10" style="background: #9b59b6; padding: 15px; border-radius: 12px; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer;">10 шт. — 179 ₽</button>
+            <button onclick="simulatePurchase(50)" data-i18n="buy_50" style="background: #e74c3c; padding: 15px; border-radius: 12px; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer;">50 шт. — 499 ₽</button>
+        </div>
+    </div>
+
+    <div class="gif-modal" id="outOfCardsModal" style="z-index: 115; text-align: center;">
+        <div class="close-modal" onclick="closeOutOfCardsModal()" data-i18n="close_btn">✖ Закрыть</div>
+        <h3 style="margin-top: 0; font-size: 24px;" data-i18n="out_of_cards">Открытки закончились 😔</h3>
+        <p style="color: #555; font-size: 15px; margin-bottom: 20px;" data-i18n="out_desc">Чтобы отправить эту открытку, пополните баланс.</p>
+        
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button onclick="buySingleAndSave()" id="buySingleBtn" data-i18n="buy_1" style="background: #2ecc71; padding: 15px; border-radius: 12px; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer;">Купить 1 шт. — 59 ₽</button>
+            <div style="margin: 5px 0; color: #888; font-size: 14px;" data-i18n="or_word">или</div>            
+            <button onclick="closeOutOfCardsModal(); openShopModal();" style="background: #f39c12; padding: 15px; border-radius: 12px; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer;" data-i18n="open_shop">Открыть магазин (Выгоднее! 🛍️)</button>
+        </div>
+    </div>
+
+    <div id="confirmOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999998;"></div>
+    <div id="confirmModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 999999; text-align: center; width: 300px; max-width: 80%;">
+        <h3 style="margin-top: 0; color: #2c3e50; font-size: 20px;" data-i18n="confirm_title">Подтверждение</h3>
+        <p id="confirmMessage" style="color: #555; margin-bottom: 20px; font-size: 16px;">Вы уверены?</p>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button id="confirmYesBtn" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 50%; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" data-i18n="confirm_yes">Да</button>
+            <button id="confirmNoBtn" style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 50%; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" data-i18n="confirm_no">Нет</button>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="lang.js?v=6"></script>
     <script src="gifs.js"></script>
     <script src="music.js"></script>
-    <script src="api_music.js"></script> <script src="generator.js"></script>
-    <script src="builder.js"></script>
-    
+    <script src="api_music.js"></script> 
+    <script src="generator.js?v=6"></script>
+    <script src="builder.js?v=6"></script>
 </body>
 </html>
