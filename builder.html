@@ -36,7 +36,7 @@
                 <div style="background: #f0f2f5; color: #2c3e50; padding: 8px 12px; border-radius: 10px; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 8px;">
                     💌 <span id="balanceDisplay">0</span>
                 </div>
-                <button onclick="openShopModal()" style="background: #f39c12; color: white; border: none; border-radius: 10px; padding: 8px 15px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" data-i18n="shop">Магазин 🛍️</button>
+                
                 <button onclick="logout()" style="background: #e74c3c; color: white; border: none; border-radius: 10px; padding: 8px 15px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" data-i18n="logout">Выйти</button>
                 
                 <div style="display: flex; gap: 5px; background: #f0f2f5; padding: 4px 8px; border-radius: 10px;">
@@ -162,28 +162,22 @@
         </div>
     </div>
 
-    <div class="gif-modal" id="shopModal" style="z-index: 115; text-align: center;">
-        <div class="close-modal" onclick="closeShopModal()" data-i18n="close_btn">✖ Закрыть</div>
-        <h3 style="margin-top: 0; font-size: 24px;" data-i18n="shop_title">Магазин Открыток 🛍️</h3>
-        
-        <div id="shopPromoBanner" style="background: #dff9fb; color: #22a6b3; padding: 10px; border-radius: 10px; font-size: 14px; margin-bottom: 20px; font-weight: bold;" data-i18n="shop_promo">🎁 Первая покупка дает +3 бонусные открытки бесплатно!</div>
-        
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-            <button onclick="simulatePurchase(5)" data-i18n="buy_5" style="background: #3498db; padding: 15px; border-radius: 12px; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer;">5 шт. — 99 ₽</button>
-            <button onclick="simulatePurchase(10)" data-i18n="buy_10" style="background: #9b59b6; padding: 15px; border-radius: 12px; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer;">10 шт. — 179 ₽</button>
-            <button onclick="simulatePurchase(50)" data-i18n="buy_50" style="background: #e74c3c; padding: 15px; border-radius: 12px; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer;">50 шт. — 499 ₽</button>
-        </div>
-    </div>
-
+    
     <div class="gif-modal" id="outOfCardsModal" style="z-index: 115; text-align: center;">
         <div class="close-modal" onclick="closeOutOfCardsModal()" data-i18n="close_btn">✖ Закрыть</div>
         <h3 style="margin-top: 0; font-size: 24px;" data-i18n="out_of_cards">Открытки закончились 😔</h3>
-        <p style="color: #555; font-size: 15px; margin-bottom: 20px;" data-i18n="out_desc">Чтобы отправить эту открытку, пополните баланс.</p>
+        <p style="color: #555; font-size: 15px; margin-bottom: 20px;" data-i18n="out_desc">Посмотри короткую рекламу, чтобы отправить эту открытку.</p>
         
         <div style="display: flex; flex-direction: column; gap: 12px;">
-            <button onclick="buySingleAndSave()" id="buySingleBtn" data-i18n="buy_1" style="background: #2ecc71; padding: 15px; border-radius: 12px; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer;">Купить 1 шт. — 59 ₽</button>
-            <div style="margin: 5px 0; color: #888; font-size: 14px;" data-i18n="or_word">или</div>            
-            <button onclick="closeOutOfCardsModal(); openShopModal();" style="background: #f39c12; padding: 15px; border-radius: 12px; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer;" data-i18n="open_shop">Открыть магазин (Выгоднее! 🛍️)</button>
+            <button onclick="watchAdAndSave()" id="watchAdBtn" data-i18n="watch_ad" style="background: #9b59b6; padding: 15px; border-radius: 12px; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer;">Смотреть рекламу (1 шт.) 📺</button>
+        </div>
+    </div>
+
+    <div id="adModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 999999; flex-direction: column; justify-content: center; align-items: center; color: white;">
+        <h2 data-i18n="ad_title" style="margin-bottom: 10px;">Рекламная пауза ⏳</h2>
+        <p data-i18n="ad_wait" style="color: #aaa; margin-bottom: 30px;">Пожалуйста, подождите...</p>
+        <div style="width: 300px; height: 250px; background: #333; display: flex; justify-content: center; align-items: center; border: 2px dashed #555; border-radius: 15px; font-size: 40px; font-weight: bold;">
+            <span id="adTimerDisplay">5</span>
         </div>
     </div>
 

@@ -183,36 +183,52 @@ function closeShopModal() { const s = document.getElementById('shopModal'); if(s
 function openOutOfCardsModal() { const m = document.getElementById('outOfCardsModal'); if(m) m.style.display = 'flex'; }
 function closeOutOfCardsModal() { const m = document.getElementById('outOfCardsModal'); if(m) m.style.display = 'none'; }
 
-async function simulatePurchase(amount, isSilent = false) {
-    const token = localStorage.getItem('otkritka_token');
-    try {
-        const response = await fetch(`${API_URL}/api/buy-cards`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount: amount })
-        });
-        if (!response.ok) { showToast(window.t('toast_err_server') || "Ошибка сервера!", "error"); return false; }
-        if (!isSilent) showToast(window.t('toast_buy_success') || "✅ Успешно оплачено!", "success");
-        fetchUserProfile(); 
-        closeShopModal();
-        return true; 
-    } catch (e) { showToast(window.t('toast_buy_net_err') || "Ошибка сети при покупке", "error"); return false; }
-}
+// --- ПРОСМОТР РЕКЛАМЫ (СИМУЛЯТОР) ---
+async function watchAdAndSave() {
+    const btn = document.getElementById('watchAdBtn');
+    if(btn) btn.disabled = true;
 
-async function buySingleAndSave() {
-    const btn = document.getElementById('buySingleBtn');
-    if(btn) btn.innerText = '⏳...';
+    // Показываем окно рекламы
+    const adModal = document.getElementById('adModal');
+    const timerDisplay = document.getElementById('adTimerDisplay');
+    adModal.style.display = 'flex';
     
-    // Покупаем строго 1 штуку!
-    const success = await simulatePurchase(1, true); 
-    
-    if(btn) btn.innerText = window.t('buy_1') || 'Купить 1 шт. — 59 ₽';
-    
-    if (success) {
-        closeOutOfCardsModal();
-        document.getElementById('finishModal').style.display = 'flex';
-        shareCard(); 
-    }
+    let timeLeft = 5; // 5 секунд
+    timerDisplay.innerText = timeLeft;
+
+    const countdown = setInterval(async () => {
+        timeLeft--;
+        timerDisplay.innerText = timeLeft;
+        
+        if (timeLeft <= 0) {
+            clearInterval(countdown);
+            adModal.style.display = 'none';
+            if(btn) btn.disabled = false;
+
+            // Начисляем открытку на бэкенде
+            const token = localStorage.getItem('otkritka_token');
+            try {
+                const response = await fetch(`${API_URL}/api/reward-ad`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    showToast(window.t('toast_ad_reward') || "✅ Реклама просмотрена! Начислена 1 открытка.", "success");
+                    fetchUserProfile(); 
+                    closeOutOfCardsModal();
+                    
+                    // Сразу переходим к отправке
+                    document.getElementById('finishModal').style.display = 'flex';
+                    shareCard(); 
+                } else {
+                    showToast(window.t('toast_err_server') || "Ошибка сервера!", "error");
+                }
+            } catch (e) {
+                showToast(window.t('toast_net_err') || "Ошибка сети", "error");
+            }
+        }
+    }, 1000);
 }
 
 // --- ТЕМЫ И ИСТОРИЯ ---

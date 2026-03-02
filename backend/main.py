@@ -297,29 +297,20 @@ def get_me(current_user: UserDB = Depends(get_current_user)):
 class BuyCardsRequest(BaseModel):
     amount: int
 
-# Имитация покупки в магазине
-@app.post("/api/buy-cards")
-def buy_cards(data: BuyCardsRequest, db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
-    added_amount = data.amount
-    bonus_message = ""
-
-    # Проверяем, первая ли это покупка
-    if not current_user.has_made_first_purchase:
-        added_amount += 3  # Накидываем ровно 3 подарочные!
-        current_user.has_made_first_purchase = True
-        bonus_message = " (+3 подарочные за первую покупку!)"
-
-    # ВАЖНО: Прибавляем открытки к балансу ТОЛЬКО ОДИН РАЗ!
-    current_user.free_cards += added_amount
+# Начисление 1 открытки за просмотр рекламы
+@app.post("/api/reward-ad")
+def reward_ad(db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
+    # Просто даем 1 открытку
+    current_user.free_cards += 1
     
-    # Записываем чек о покупке в статистику админки
-    new_tx = TransactionDB(user_id=current_user.id, amount=data.amount)
+    # Для статистики админки можем записывать просмотры рекламы в ту же таблицу транзакций (с amount=1)
+    new_tx = TransactionDB(user_id=current_user.id, amount=1)
     db.add(new_tx)
     
     db.commit()
 
     return {
-        "message": f"Успешно куплено {data.amount} шт.{bonus_message}",
+        "message": "Успешно начислена 1 открытка за рекламу!",
         "new_balance": current_user.free_cards
     }
     
