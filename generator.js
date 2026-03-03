@@ -38,6 +38,19 @@ function generateHtmlString(bgStyle, slidesArray, backgroundEmoji = "", musicUrl
             .lang-switcher { position: fixed; bottom: 20px; left: 20px; display: flex; gap: 8px; background: rgba(255,255,255,0.7); padding: 8px 12px; border-radius: 15px; backdrop-filter: blur(5px); z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
             .lang-switcher button { background: none; border: none; font-size: 20px; cursor: pointer; transition: 0.2s; opacity: 0.5; }
             .lang-switcher button.active { opacity: 1; transform: scale(1.2); }
+
+            /* Дождь из эмодзи */
+            @keyframes fall {
+                0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+                100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+            }
+            .emoji-rain {
+                position: fixed;
+                top: -10%;
+                z-index: 1;
+                pointer-events: none;
+                animation: fall linear infinite;
+            }
         </style>
     </head>
     <body>
@@ -47,7 +60,30 @@ function generateHtmlString(bgStyle, slidesArray, backgroundEmoji = "", musicUrl
             <button id="lang-kz" onclick="changeCardLang('kz')">🇰🇿</button>
         </div>
 
-        ${backgroundEmoji ? `<div style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; opacity:0.15; background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22><text x=%2240%22 y=%2240%22 font-size=%2230%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22>${encodeURIComponent(backgroundEmoji)}</text></svg>');"></div>` : ''}
+        ${backgroundEmoji ? `
+        <div style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; opacity:0.1; background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22><text x=%2240%22 y=%2240%22 font-size=%2230%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22>${encodeURIComponent(backgroundEmoji)}</text></svg>');"></div>
+        <script>
+            function createRain() {
+                const emojis = Array.from('${backgroundEmoji}'); // Разбиваем строку на отдельные эмодзи
+                if(emojis.length === 0) return;
+                setInterval(() => {
+                    const drop = document.createElement('div');
+                    drop.classList.add('emoji-rain');
+                    drop.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+                    drop.style.left = Math.random() * 100 + 'vw';
+                    drop.style.animationDuration = (Math.random() * 3 + 3) + 's'; // От 3 до 6 секунд падения
+                    drop.style.fontSize = (Math.random() * 15 + 20) + 'px'; // Размер 20-35px
+                    drop.style.opacity = Math.random() * 0.5 + 0.3; // Полупрозрачные
+                    document.body.appendChild(drop);
+                    
+                    // Удаляем эмодзи после падения, чтобы не засорять память
+                    setTimeout(() => drop.remove(), 6000);
+                }, 400); // Каждые 400мс падает новая капля
+            }
+            createRain();
+        </script>
+        ` : ''}
+
         ${musicUrl ? `<div class="music-player" id="musicBtn" onclick="toggleMusic()">🎵</div><audio id="bgMusic" src="${musicUrl}" loop></audio>` : ''}
 
         <div class="card-container">
@@ -56,27 +92,23 @@ function generateHtmlString(bgStyle, slidesArray, backgroundEmoji = "", musicUrl
         </div>
 
         <script>
-            // --- ВСТРОЕННЫЙ СЛОВАРЬ ОТКРЫТКИ ---
             const dict = {
-                ru: { next: "Далее ➔", done: "Завершить ❤️", end_msg: "Это всё! Спасибо за просмотр ❤️", close: "✖ Закрыть", sec_title: "Секретное послание 💌", sec_btn: "Ух ты!" },
-                en: { next: "Next ➔", done: "Done ❤️", end_msg: "That's all! Thanks for watching ❤️", close: "✖ Close", sec_title: "Secret Message 💌", sec_btn: "Wow!" },
-                kz: { next: "Келесі ➔", done: "Аяқтау ❤️", end_msg: "Осымен бітті! Көргеніңізге рақмет ❤️", close: "✖ Жабу", sec_title: "Жасырын хат 💌", sec_btn: "Керемет!" }
+                ru: { next: "Далее ➔", done: "Завершить ❤️", sec_title: "Секретное послание 💌", sec_btn: "Ух ты!", close: "✖ Закрыть" },
+                en: { next: "Next ➔", done: "Done ❤️", sec_title: "Secret Message 💌", sec_btn: "Wow!", close: "✖ Close" },
+                kz: { next: "Келесі ➔", done: "Аяқтау ❤️", sec_title: "Жасырын хат 💌", sec_btn: "Керемет!", close: "✖ Жабу" }
             };
 
-            // Берем язык сайта создателя, либо сохраненный язык получателя, либо русский
             let currentLang = localStorage.getItem('site_lang') || localStorage.getItem('card_lang') || 'ru';
 
             function changeCardLang(lang) {
                 currentLang = lang;
-                localStorage.setItem('card_lang', lang); // Запоминаем для будущих открыток
+                localStorage.setItem('card_lang', lang); 
                 
-                // Переключаем визуал флажков
                 document.getElementById('lang-ru').classList.remove('active');
                 document.getElementById('lang-en').classList.remove('active');
                 document.getElementById('lang-kz').classList.remove('active');
                 document.getElementById('lang-' + lang).classList.add('active');
 
-                // Переводим кнопки навигации
                 const nextBtn = document.getElementById('nextSlideBtn');
                 if (nextBtn) {
                     if (currentSlideIndex >= slides.length - 1) {
@@ -86,7 +118,6 @@ function generateHtmlString(bgStyle, slidesArray, backgroundEmoji = "", musicUrl
                     }
                 }
 
-                // Переводим интерактивные фишки
                 const rBtn = document.getElementById('runawayBtn');
                 if (rBtn) rBtn.innerText = dict[lang].close;
 
@@ -97,7 +128,6 @@ function generateHtmlString(bgStyle, slidesArray, backgroundEmoji = "", musicUrl
                 if (sBtn) sBtn.innerText = dict[lang].sec_btn;
             }
 
-            // --- ЛОГИКА ОТКРЫТКИ ---
             let currentSlideIndex = 0; 
             const slides = document.querySelectorAll('.slide'); 
             const nextBtn = document.getElementById('nextSlideBtn');
@@ -106,9 +136,13 @@ function generateHtmlString(bgStyle, slidesArray, backgroundEmoji = "", musicUrl
                 slides[currentSlideIndex].classList.remove('active');
                 currentSlideIndex++;
                 if (currentSlideIndex >= slides.length) { 
-                    currentSlideIndex = slides.length - 1; 
-                    slides[currentSlideIndex].classList.add('active'); 
-                    alert(dict[currentLang].end_msg); 
+                    // ВАЖНО: Вирусный редирект! Берем базовый URL и отправляем туда
+                    let baseUrl = window.location.href.split('view.html')[0];
+                    if(!baseUrl || baseUrl.startsWith('blob:') || baseUrl.startsWith('file:')) {
+                        window.location.href = 'builder.html';
+                    } else {
+                        window.location.href = baseUrl; // Перекидываем на регистрацию
+                    }
                     return; 
                 }
                 slides[currentSlideIndex].classList.add('active');
@@ -124,7 +158,6 @@ function generateHtmlString(bgStyle, slidesArray, backgroundEmoji = "", musicUrl
                 isPlaying = !isPlaying; 
             }
 
-            // Мгновенный перевод при загрузке страницы
             window.onload = () => changeCardLang(currentLang);
         <\/script>
 

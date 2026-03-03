@@ -29,6 +29,8 @@ const i18n = {
         toast_need_name: "Напишите название (на 1-й карте)!",
         toast_need_img: "Выберите все картинки!",
         toast_not_auth: "Вы не авторизованы!",
+        earn_card: "Заработать открытку 📺",
+        auth_promo: "Порадуйте близких и друзей живой открыткой совершенно бесплатно!",
         toast_save_err: "Не удалось сохранить открытку"
     },
     en: {
@@ -59,6 +61,8 @@ const i18n = {
         toast_need_name: "Enter a name (on the 1st card)!",
         toast_need_img: "Select all images!",
         toast_not_auth: "You are not authorized!",
+        auth_promo: "Delight your loved ones with a live postcard absolutely free!",
+        earn_card: "Earn a card 📺",
         toast_save_err: "Failed to save card"
     },
     kz: {
@@ -89,6 +93,8 @@ const i18n = {
         toast_need_name: "Атауын жазыңыз (1-ші картада)!",
         toast_need_img: "Барлық суреттерді таңдаңыз!",
         toast_not_auth: "Сіз авторизациядан өтпедіңіз!",
+        earn_card: "Ашық хат алу 📺",
+        auth_promo: "Жақындарыңыз бен достарыңызды тірі ашық хатпен тегін қуантыңыз!",
         toast_save_err: "Ашық хат сақталмады"
     }
 };

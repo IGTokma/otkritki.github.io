@@ -150,32 +150,25 @@ function showScreen(screenId) {
 }
 
 // --- БАЛАНС И МАГАЗИН ---
+// --- БАЛАНС ---
 async function fetchUserProfile() {
     const token = localStorage.getItem('otkritka_token');
     if (!token) return;
+    
     try {
-        const response = await fetch(`${API_URL}/api/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const response = await fetch(`${API_URL}/api/me`, { 
+            headers: { 'Authorization': `Bearer ${token}` } 
+        });
+        
         if (response.ok) {
             const data = await response.json();
             const balanceEl = document.getElementById('balanceDisplay');
+            // Просто берем цифру с сервера и обновляем шапку
             if(balanceEl) balanceEl.innerText = data.free_cards;
-            
-            const promoShop = document.getElementById('shopPromoBanner');
-            const displayEl = document.getElementById('freeCardsDisplay');
-            if (data.has_made_first_purchase) {
-                if (promoShop) promoShop.style.display = 'none';
-                if (displayEl) displayEl.style.display = 'none';
-            } else {
-                if (promoShop) promoShop.style.display = 'block';
-                if (displayEl && data.free_cards > 0) {
-                    displayEl.innerHTML = `🎁 У тебя есть <b>${data.free_cards}</b> бесплатные открытки!`;
-                    displayEl.style.display = 'block';
-                } else if(displayEl) {
-                    displayEl.style.display = 'none';
-                }
-            }
         }
-    } catch (e) { console.log("Не удалось обновить профиль"); }
+    } catch (e) { 
+        console.log("Не удалось обновить профиль"); 
+    }
 }
 
 function openShopModal() { const s = document.getElementById('shopModal'); if(s) s.style.display = 'flex'; }
@@ -230,6 +223,50 @@ async function watchAdAndSave() {
         }
     }, 1000);
 }
+
+// --- ПРОСМОТР РЕКЛАМЫ (ИЗ ШАПКИ, ПРОСТО ДЛЯ БАЛАНСА) ---
+async function watchAdForFreeCard() {
+    // Показываем окно рекламы
+    const adModal = document.getElementById('adModal');
+    const timerDisplay = document.getElementById('adTimerDisplay');
+    
+    if(!adModal) return;
+    
+    adModal.style.display = 'flex';
+    
+    let timeLeft = 5; // 5 секунд рекламы
+    timerDisplay.innerText = timeLeft;
+
+    const countdown = setInterval(async () => {
+        timeLeft--;
+        timerDisplay.innerText = timeLeft;
+        
+        if (timeLeft <= 0) {
+            clearInterval(countdown);
+            adModal.style.display = 'none'; // Скрываем рекламу
+
+            // Начисляем открытку на бэкенде
+            const token = localStorage.getItem('otkritka_token');
+            try {
+                const response = await fetch(`${API_URL}/api/reward-ad`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    showToast(window.t('toast_ad_reward') || "✅ Реклама просмотрена! Начислена 1 открытка.", "success");
+                    // Мгновенно обновляем цифру баланса в шапке!
+                    fetchUserProfile(); 
+                } else {
+                    showToast(window.t('toast_err_server') || "Ошибка сервера!", "error");
+                }
+            } catch (e) {
+                showToast(window.t('toast_net_err') || "Ошибка сети", "error");
+            }
+        }
+    }, 1000);
+}
+
 
 // --- ТЕМЫ И ИСТОРИЯ ---
 function renderThemes() {

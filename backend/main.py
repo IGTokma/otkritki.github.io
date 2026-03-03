@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,15 +13,20 @@ import string
 import json
 from datetime import datetime, timedelta
 
+# Загружаем переменные из файла .env
+load_dotenv()
+
 # --- 1. НАСТРОЙКИ БЕЗОПАСНОСТИ (JWT и Хеширование) ---
-SECRET_KEY = "super-secret-key-change-it-later" # Секретный ключ для подписи пропусков
+# JWT Настройки
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fallback-secret-key-if-env-is-missing")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_DAYS = 30 # Токен живет 30 дней
+ACCESS_TOKEN_EXPIRE_MINUTES = 43200
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login")
 
 # --- 2. БАЗА ДАННЫХ (SQLite) ---
-SQLALCHEMY_DATABASE_URL = "sqlite:///./postcards.db"
+# База данных
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./postcards.db")
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -112,7 +119,7 @@ def get_password_hash(password: str):
 
 def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
+    expire = datetime.utcnow() + timedelta(days=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -227,7 +234,7 @@ def delete_card(short_id: str, current_user: UserDB = Depends(get_current_user),
     return {"message": "Открытка успешно удалена"}
 
 # --- ПАНЕЛЬ АДМИНИСТРАТОРА ---
-ADMIN_SECRET_KEY = "my-super-secret-123" # Придумай свой сложный пароль!
+ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", "12345") # Придумай свой сложный пароль!
 
 @app.post("/api/admin/add-cards")
 def admin_add_cards(data: AdminAddCards, db: Session = Depends(get_db)):
