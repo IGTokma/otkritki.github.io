@@ -1,6 +1,8 @@
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -140,9 +142,6 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 # --- 6. ЭНДПОИНТЫ API ---
 
-@app.get("/")
-def read_root():
-    return {"message": "Сервер работает! 🚀 Документация: /docs"}
 
 # Регистрация
 @app.post("/api/register")
@@ -338,3 +337,14 @@ def get_chart_stats(data: AdminSecret, db: Session = Depends(get_db)):
         "cards": [{"date": c[0], "count": c[1]} for c in cards_by_date if c[0]],
         "purchases": [{"date": t[0], "amount": t[1]} for t in txs_by_date if t[0]]
     }
+    
+# --- РАЗДАЧА ФРОНТЕНДА ---
+
+# Главная страница (Откроется при переходе по домену)
+@app.get("/")
+def read_root():
+    return FileResponse("frontend/builder.html")
+
+# Раздача всех остальных файлов (JS, CSS, картинки)
+# ВАЖНО: Эта строчка должна быть строго в самом конце файла!
+app.mount("/", StaticFiles(directory="frontend"), name="frontend")
