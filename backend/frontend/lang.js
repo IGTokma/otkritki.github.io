@@ -13,6 +13,16 @@ const i18n = {
         word_card: "Карточка", btn_share: "Поделиться", confirm_del_slide: "Удалить эту карточку?", confirm_del_saved: "Точно удалить навсегда?", untitled: "Без названия",
         cat_cats: "Котики 🐈", cat_love: "Любовь ❤️", cat_sad: "Грусть 🥺", cat_greetings: "Приветствия 👋", cat_fun: "Веселье 😂", cat_romantic: "Романтика 💕",
         
+        custom_title: "Свой дизайн ✨",
+        who_for: "Кому открытка?",
+        who_ph: "Например: Любимому коту 🐈",
+        bg_music: "Музыка фона",
+        btn_choose_music: "🎵 Выбрать музыку",
+        bg_emoji: "Эмодзи для фона (1 шт)",
+        custom_emoji_ph: "Свой",
+        bg_color: "Цвет фона",
+        btn_create: "Создать ➔",
+
         // --- УВЕДОМЛЕНИЯ (TOASTS) ---
         toast_enter_cred: "Пожалуйста, введите логин и пароль!",
         toast_acc_created: "🎉 Аккаунт создан! Входим...",
@@ -45,6 +55,16 @@ const i18n = {
         word_card: "Card", btn_share: "Share", confirm_del_slide: "Delete this card?", confirm_del_saved: "Delete permanently?", untitled: "Untitled",
         cat_cats: "Cats 🐈", cat_love: "Love ❤️", cat_sad: "Sadness 🥺", cat_greetings: "Greetings 👋", cat_fun: "Fun 😂", cat_romantic: "Romantic 💕",
         
+        custom_title: "Custom Design ✨",
+        who_for: "Who is this for?",
+        who_ph: "E.g.: My lovely cat 🐈",
+        bg_music: "Background Music",
+        btn_choose_music: "🎵 Choose Music",
+        bg_emoji: "Background Emoji (1 item)",
+        custom_emoji_ph: "Custom",
+        bg_color: "Background Color",
+        btn_create: "Create ➔",
+
         // --- УВЕДОМЛЕНИЯ (TOASTS) ---
         toast_enter_cred: "Please enter username and password!",
         toast_acc_created: "🎉 Account created! Logging in...",
@@ -76,6 +96,16 @@ const i18n = {
         theme_mom: "Сүйікті анама 🌸", theme_love: "Сүйіктім үшін ❤️", theme_hb: "Туған күніңмен 🎈", theme_friend: "Досым үшін ✌️", theme_sad: "Кешірші мені 🥺", theme_neutral: "Жәй ғана ✨", theme_custom: "+ Өз дизайным 🎨",
         word_card: "Карточка", btn_share: "Бөлісу", confirm_del_slide: "Бұл карточканы жою керек пе?", confirm_del_saved: "Мәңгілікке жою керек пе?", untitled: "Атаусыз",
         cat_cats: "Мысықтар 🐈", cat_love: "Махаббат ❤️", cat_sad: "Мұң 🥺", cat_greetings: "Сәлемдесу 👋", cat_fun: "Көңілді 😂", cat_romantic: "Романтика 💕",
+        
+        custom_title: "Өз дизайным ✨",
+        who_for: "Ашық хат кімге?",
+        who_ph: "Мысалы: Сүйікті мысығыма 🐈",
+        bg_music: "Фондық музыка",
+        btn_choose_music: "🎵 Музыка таңдау",
+        bg_emoji: "Фонға арналған эмодзи (1 дана)",
+        custom_emoji_ph: "Өз",
+        bg_color: "Фон түсі",
+        btn_create: "Жасау ➔",
         
         // --- УВЕДОМЛЕНИЯ (TOASTS) ---
         toast_enter_cred: "Логин мен құпиясөзді енгізіңіз!",
@@ -111,6 +141,7 @@ function changeLang(lang) {
     currentLang = lang;
     localStorage.setItem('site_lang', lang);
     applyTranslations();
+    const greetEl = document.getElementById('greetingTextBase'); if (greetEl) greetEl.innerText = t('greeting') || "Привет, ";
 }
 
 function applyTranslations() {

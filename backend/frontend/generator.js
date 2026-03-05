@@ -17,40 +17,43 @@ function generateHtmlString(bgStyle, slidesArray, backgroundEmoji = "", musicUrl
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Для тебя! ❤️</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💌</text></svg>">
         <style>
-            body { margin: 0; padding: 0; background: ${bgStyle}; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-            .card-container { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 90%; max-width: 400px; padding: 20px; text-align: center; position: relative; z-index: 10; }
-            .slide { display: none; animation: fadeIn 0.5s ease; }
-            .slide.active { display: block; }
-            .slide img { max-width: 100%; border-radius: 10px; margin-bottom: 15px; }
-            .slide h2 { color: #ff4757; margin-top: 0; }
-            .slide p { color: #555; font-size: 16px; line-height: 1.5; }
-            .nav-btn { background: #ff4757; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 16px; cursor: pointer; margin-top: 20px; font-weight: bold; width: 100%; transition: 0.2s; }
-            .nav-btn:hover { transform: scale(1.05); }
-            @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+            body { margin: 0; padding: 0; background: ${bgStyle}; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; touch-action: pan-y; }
             
-            /* Плеер */
+            /* Улучшенный дизайн карточки: не растягивается на весь экран */
+            .card-container { 
+                background: white; 
+                border-radius: 25px; 
+                box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
+                width: 85%; /* Отступы по бокам */
+                max-width: 400px; 
+                padding: 30px 20px; 
+                text-align: center; 
+                position: relative; 
+                z-index: 10; 
+                box-sizing: border-box;
+            }
+            
+            .slide { display: none; animation: fadeIn 0.4s ease; }
+            .slide.active { display: block; }
+            .slide img { max-width: 100%; max-height: 45vh; object-fit: contain; border-radius: 12px; margin-bottom: 15px; }
+            .slide h2 { color: #ff4757; margin-top: 0; font-size: 24px; }
+            .slide p { color: #555; font-size: 17px; line-height: 1.5; margin-bottom: 0; }
+            .nav-btn { background: #ff4757; color: white; border: none; padding: 12px 20px; border-radius: 20px; font-size: 16px; cursor: pointer; margin-top: 25px; font-weight: bold; width: 100%; transition: 0.2s; box-shadow: 0 4px 15px rgba(255,71,87,0.3); }
+            .nav-btn:hover { transform: translateY(-2px); }
+            @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+            
             .music-player { position: fixed; top: 20px; left: 20px; background: white; border-radius: 50%; width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer; z-index: 100; font-size: 24px; }
             .music-player.playing { animation: spin 3s linear infinite; }
             @keyframes spin { 100% { transform: rotate(360deg); } }
             
-            /* Переключатель языков внутри открытки */
             .lang-switcher { position: fixed; bottom: 20px; left: 20px; display: flex; gap: 8px; background: rgba(255,255,255,0.7); padding: 8px 12px; border-radius: 15px; backdrop-filter: blur(5px); z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
             .lang-switcher button { background: none; border: none; font-size: 20px; cursor: pointer; transition: 0.2s; opacity: 0.5; }
             .lang-switcher button.active { opacity: 1; transform: scale(1.2); }
 
-            /* Дождь из эмодзи */
-            @keyframes fall {
-                0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
-                100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
-            }
-            .emoji-rain {
-                position: fixed;
-                top: -10%;
-                z-index: 1;
-                pointer-events: none;
-                animation: fall linear infinite;
-            }
+            @keyframes fall { 0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(360deg); opacity: 0; } }
+            .emoji-rain { position: fixed; top: -10%; z-index: 1; pointer-events: none; animation: fall linear infinite; }
         </style>
     </head>
     <body>
@@ -64,21 +67,19 @@ function generateHtmlString(bgStyle, slidesArray, backgroundEmoji = "", musicUrl
         <div style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; opacity:0.1; background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22><text x=%2240%22 y=%2240%22 font-size=%2230%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22>${encodeURIComponent(backgroundEmoji)}</text></svg>');"></div>
         <script>
             function createRain() {
-                const emojis = Array.from('${backgroundEmoji}'); // Разбиваем строку на отдельные эмодзи
+                const emojis = Array.from('${backgroundEmoji}'); 
                 if(emojis.length === 0) return;
                 setInterval(() => {
                     const drop = document.createElement('div');
                     drop.classList.add('emoji-rain');
                     drop.innerText = emojis[Math.floor(Math.random() * emojis.length)];
                     drop.style.left = Math.random() * 100 + 'vw';
-                    drop.style.animationDuration = (Math.random() * 3 + 3) + 's'; // От 3 до 6 секунд падения
-                    drop.style.fontSize = (Math.random() * 15 + 20) + 'px'; // Размер 20-35px
-                    drop.style.opacity = Math.random() * 0.5 + 0.3; // Полупрозрачные
+                    drop.style.animationDuration = (Math.random() * 3 + 3) + 's'; 
+                    drop.style.fontSize = (Math.random() * 15 + 20) + 'px'; 
+                    drop.style.opacity = Math.random() * 0.5 + 0.3; 
                     document.body.appendChild(drop);
-                    
-                    // Удаляем эмодзи после падения, чтобы не засорять память
                     setTimeout(() => drop.remove(), 6000);
-                }, 400); // Каждые 400мс падает новая капля
+                }, 400); 
             }
             createRain();
         </script>
@@ -132,16 +133,38 @@ function generateHtmlString(bgStyle, slidesArray, backgroundEmoji = "", musicUrl
             const slides = document.querySelectorAll('.slide'); 
             const nextBtn = document.getElementById('nextSlideBtn');
             
+            // ЛОГИКА СВАЙПОВ (КАК В ИСТОРИЯХ)
+            let touchstartX = 0;
+            let touchendX = 0;
+            
+            document.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; });
+            document.addEventListener('touchend', e => { 
+                touchendX = e.changedTouches[0].screenX; 
+                handleSwipe(); 
+            });
+
+            function handleSwipe() {
+                if (touchendX < touchstartX - 50) nextSlide(); // Свайп влево -> Вперед
+                if (touchendX > touchstartX + 50) prevSlide(); // Свайп вправо -> Назад
+            }
+
+            function prevSlide() {
+                if (currentSlideIndex <= 0) return;
+                slides[currentSlideIndex].classList.remove('active');
+                currentSlideIndex--;
+                slides[currentSlideIndex].classList.add('active');
+                nextBtn.innerText = dict[currentLang].next; // Возвращаем текст "Далее"
+            }
+
             function nextSlide() {
                 slides[currentSlideIndex].classList.remove('active');
                 currentSlideIndex++;
                 if (currentSlideIndex >= slides.length) { 
-                    // ВАЖНО: Вирусный редирект! Берем базовый URL и отправляем туда
                     let baseUrl = window.location.href.split('view.html')[0];
                     if(!baseUrl || baseUrl.startsWith('blob:') || baseUrl.startsWith('file:')) {
-                        window.location.href = 'builder.html';
+                        alert("Спасибо за просмотр! ❤️ Создай свою открытку на нашем сайте!");
                     } else {
-                        window.location.href = baseUrl; // Перекидываем на регистрацию
+                        window.location.href = baseUrl; 
                     }
                     return; 
                 }

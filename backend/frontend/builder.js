@@ -26,17 +26,33 @@ const cardThemes = [
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('otkritka_token');
     const savedUser = localStorage.getItem('otkritka_username');
+    
     if (token && savedUser) {
+        // АВТОРИЗОВАННЫЙ ПОЛЬЗОВАТЕЛЬ
         currentUser = savedUser;
         const nameDisplay = document.getElementById('userNameDisplay');
         if(nameDisplay) nameDisplay.innerText = currentUser;
+        
+        document.getElementById('logoutBtn').style.display = 'block';
+        document.getElementById('headerLoginBtn').style.display = 'none';
+        document.getElementById('myCardsSection').style.display = 'block';
+        
         fetchUserProfile(); 
-        showScreen('screen-dashboard');
         renderSavedCards();
     } else {
-        showScreen('screen-auth');
+        // ГОСТЬ (Для модераторов Яндекса)
+        currentUser = null;
+        const nameDisplay = document.getElementById('userNameDisplay');
+        if(nameDisplay) nameDisplay.innerText = window.t('guest') || "Гость";
+        
+        document.getElementById('logoutBtn').style.display = 'none';
+        document.getElementById('headerLoginBtn').style.display = 'block';
+        document.getElementById('myCardsSection').style.display = 'none'; // Прячем чужие открытки
     }
-    // Отрисовка запустится после того, как lang.js переведет интерфейс
+    
+    // ВАЖНО: Теперь ВСЕГДА сначала показываем дашборд с контентом!
+    showScreen('screen-dashboard');
+    
     setTimeout(() => {
         renderThemes();
         renderCategoryButtons();
@@ -74,6 +90,23 @@ function showConfirm(message, onConfirmCallback) {
     };
     document.getElementById('confirmYesBtn').onclick = () => { closeConfirm(); onConfirmCallback(); };
     document.getElementById('confirmNoBtn').onclick = closeConfirm;
+}
+
+let isLoginMode = true;
+function toggleAuthMode() {
+    isLoginMode = !isLoginMode;
+    const t = window.t || (k => k); 
+    
+    // Меняем заголовки
+    document.getElementById('authTitle').innerText = isLoginMode ? (t('auth_title') || "Вход в аккаунт 🔐") : (t('btn_up') || "Создать аккаунт ✨");
+    document.getElementById('authSub').innerText = isLoginMode ? (t('auth_sub') || "Чтобы сохранять открытки навсегда") : "Регистрация нового профиля";
+    
+    // ПРЯЧЕМ И ПОКАЗЫВАЕМ НУЖНЫЕ КНОПКИ
+    document.getElementById('loginBtn').style.display = isLoginMode ? 'block' : 'none';
+    document.getElementById('regBtn').style.display = isLoginMode ? 'none' : 'block';
+    
+    // Меняем текст самой ссылки-переключателя
+    document.getElementById('authToggleBtn').innerText = isLoginMode ? "Нет аккаунта? Создать ✨" : "Уже есть аккаунт? Войти ➔";
 }
 
 // --- АВТОРИЗАЦИЯ ---
@@ -273,35 +306,51 @@ function renderThemes() {
     const container = document.getElementById('themesContainer');
     if(!container) return;
     container.innerHTML = '';
-    cardThemes.forEach(theme => {
-        const btn = document.createElement('button');
-        btn.className = 'theme-tile';
-        const translatedName = window.t('theme_' + theme.id) || theme.name;
-        btn.innerText = translatedName;
-        btn.style.background = theme.bg;
-        btn.onclick = () => startBuilder(theme.bg, theme.emoji, theme.music, translatedName);
-        container.appendChild(btn);
-    });
+    
     const customBtn = document.createElement('button');
     customBtn.className = 'theme-tile';
     customBtn.innerHTML = window.t('theme_custom') || '+ Свой дизайн 🎨';
     customBtn.style.background = 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)';
     customBtn.style.color = '#333';
     customBtn.onclick = () => {
+        // ПРОВЕРКА НА ГОСТЯ
+        if (!currentUser) { 
+            showScreen('screen-auth'); 
+            return showToast("Для создания открытки нужно войти! 🔐", "error"); 
+        }
         startBuilder('#f0f2f5', '', '', ''); 
         document.getElementById('customThemeModal').style.display = 'flex';
-        document.getElementById('customThemeName').value = '';
-        document.getElementById('customThemeEmoji').value = '';
-        customSelectedMusicUrl = ""; 
-        const musicBtn = document.getElementById('customMusicBtn');
-        if(musicBtn) { musicBtn.innerText = '🎵'; musicBtn.style.background = '#3498db'; }
     };
     container.appendChild(customBtn);
+
+    cardThemes.forEach(theme => {
+        const btn = document.createElement('button');
+        btn.className = 'theme-tile';
+        const translatedName = window.t('theme_' + theme.id) || theme.name;
+        btn.innerText = translatedName;
+        btn.style.background = theme.bg;
+        btn.onclick = () => {
+            // ПРОВЕРКА НА ГОСТЯ
+            if (!currentUser) { 
+                showScreen('screen-auth'); 
+                return showToast("Для создания открытки нужно войти! 🔐", "error"); 
+            }
+            startBuilder(theme.bg, theme.emoji, theme.music, translatedName);
+        };
+        container.appendChild(btn);
+    });
 }
 
-function setCustomColor(color) {
-    document.getElementById('customColorHex').innerText = color;
-    window.selectedCustomColor = color;
+// --- ВЫБОР ЦВЕТА СВОЕГО ДИЗАЙНА ---
+function setCustomColor(color, element) {
+    document.getElementById('selectedColorValue').value = color;
+    document.querySelectorAll('.color-circle').forEach(el => el.style.border = '2px solid transparent');
+    if(element && element.classList.contains('color-circle')) {
+        element.style.border = '2px solid #2c3e50';
+    }
+    
+    // МГНОВЕННО меняем цвет фона позади окна!
+    document.body.style.background = color;
 }
 
 function closeCustomThemeModal() {
@@ -500,16 +549,16 @@ function useCustomUrl() {
 function openMusicModal() {
     document.getElementById('musicModal').style.display = 'flex';
     document.getElementById('musicSearchInput').value = ''; 
-    document.getElementById('musicTags').style.display = 'flex'; 
-    renderMusicTags();
-    showTracksFromCategory('romantic');
+    document.getElementById('musicList').innerHTML = ''; // Очищаем старые результаты
 }
+
 function closeMusicModal() {
     document.getElementById('musicModal').style.display = 'none';
     const player = document.getElementById('previewPlayer');
     if(player) player.pause();
     currentPlayingUrl = "";
 }
+
 function renderMusicTags() {
     const tagsContainer = document.getElementById('musicTags');
     if(!tagsContainer) return;
@@ -648,4 +697,40 @@ function downloadCard() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `${currentCardName || 'Открытка'}.html`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+// --- ЛОГИКА ВЫБОРА ЭМОДЗИ ДЛЯ "СВОЕГО ДИЗАЙНА" ---
+
+// --- ЛОГИКА ВЫБОРА ЭМОДЗИ ДЛЯ "СВОЕГО ДИЗАЙНА" ---
+function setPresetEmoji(emoji, btnElement) {
+    document.getElementById('customEmojiInput').value = emoji;
+    document.querySelectorAll('.emoji-preset-btn').forEach(btn => btn.style.border = '2px solid transparent');
+    if(btnElement) btnElement.style.border = '2px solid #2c3e50';
+    
+    // МГНОВЕННО обновляем эмодзи на фоне!
+    updateLivePreviewEmoji(emoji);
+}
+
+function clearPresetEmojis(inputElement) {
+    document.querySelectorAll('.emoji-preset-btn').forEach(btn => btn.style.border = '2px solid transparent');
+    const chars = Array.from(inputElement.value);
+    if (chars.length > 1) {
+        inputElement.value = chars[0];
+    }
+    
+    // МГНОВЕННО обновляем эмодзи, когда печатаем свой!
+    updateLivePreviewEmoji(inputElement.value);
+}
+
+// НОВАЯ ФУНКЦИЯ ДЛЯ ОТРИСОВКИ ЭМОДЗИ ПОЗАДИ ОКНА
+function updateLivePreviewEmoji(emoji) {
+    let oldPattern = document.getElementById('bg-pattern-layer');
+    if (oldPattern) oldPattern.remove();
+    if (emoji) {
+        const pattern = document.createElement('div');
+        pattern.id = 'bg-pattern-layer';
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><text x="40" y="40" font-size="30" text-anchor="middle" dominant-baseline="middle" opacity="0.15">${emoji}</text></svg>`;
+        pattern.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:-1;background-image:url('data:image/svg+xml;utf8,${encodeURIComponent(svg)}')`;
+        document.body.appendChild(pattern);
+    }
 }

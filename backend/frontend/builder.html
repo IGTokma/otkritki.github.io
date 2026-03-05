@@ -2,9 +2,28 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Конструктор Живой Открытки</title>
-    <link rel="stylesheet" href="builder.css">
+    <meta name="color-scheme" content="light only">
+
+    <meta name="description" content="Создайте уникальную живую открытку для своих близких абсолютно бесплатно! Интерактивные поздравления, падающие эмодзи и музыка.">
+    <meta name="keywords" content="живая открытка, создать открытку, поздравление, бесплатные открытки">
+    
+    <meta property="og:title" content="Конструктор Живой Открытки 💌">
+    <meta property="og:description" content="Порадуйте близких и друзей живой открыткой совершенно бесплатно!">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://otkroy.org/">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta property="og:locale:alternate" content="kk_KZ">
+
+    <link rel="alternate" hreflang="ru" href="https://otkroy.org/" />
+    <link rel="alternate" hreflang="en" href="https://otkroy.org/" />
+    <link rel="alternate" hreflang="kk" href="https://otkroy.org/" />
+    <link rel="alternate" hreflang="x-default" href="https://otkroy.org/" />
+
+    <link rel="stylesheet" href="builder.css?v=14">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💌</text></svg>">
 </head>
 <body>
 
@@ -16,55 +35,59 @@
         </div>
 
         <div class="card" style="max-height: none; padding-top: 40px; padding-bottom: 30px; justify-content: center; text-align: center;">
-            
             <div style="margin-bottom: 25px;">
                 <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #ff9ff3, #feca57); border-radius: 25px; display: inline-flex; justify-content: center; align-items: center; font-size: 45px; margin: 0 auto 15px auto; box-shadow: 0 10px 20px rgba(0,0,0,0.1);">💌</div>
-                
                 <h1 style="margin: 0; font-size: 26px; color: #2c3e50;">Живые Открытки</h1>
                 <p style="color: #ff4757; font-weight: bold; margin-top: 10px; font-size: 16px; line-height: 1.4; padding: 0 10px;" data-i18n="auth_promo">Порадуйте близких и друзей живой открыткой совершенно бесплатно!</p>
             </div>
 
-            <h2 style="margin-bottom: 5px; font-size: 20px;" data-i18n="auth_title">Вход в аккаунт 🔐</h2>
-            <p style="text-align: center; color: #777; font-size: 14px; margin-bottom: 20px;" data-i18n="auth_sub">Чтобы сохранять открытки навсегда</p>
+            <h2 id="authTitle" style="margin-bottom: 5px; font-size: 20px;" data-i18n="auth_title">Вход в аккаунт 🔐</h2>
+            <p id="authSub" style="text-align: center; color: #777; font-size: 14px; margin-bottom: 20px;" data-i18n="auth_sub">Чтобы сохранять открытки навсегда</p>
             
             <input type="text" id="usernameInput" data-i18n="login_ph" placeholder="Логин (без пробелов)" style="width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 10px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px;">
             <input type="password" id="passwordInput" data-i18n="pass_ph" placeholder="Пароль" style="width: 100%; padding: 12px; margin-bottom: 25px; border-radius: 10px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px;">
             
-            <button class="generate-btn" style="background: #3498db; margin-bottom: 12px; margin-top: 0;" onclick="loginUser()" data-i18n="btn_in">Войти ➔</button>
-            <button class="generate-btn" style="background: #2ecc71; margin-top: 0;" onclick="registerUser()" data-i18n="btn_up">Создать аккаунт ✨</button>
+            <button id="loginBtn" class="generate-btn" style="background: #3498db; margin-bottom: 15px; margin-top: 0; width: 100%;" onclick="loginUser()" data-i18n="btn_in">Войти ➔</button>
+            <button id="regBtn" class="generate-btn" style="background: #2ecc71; margin-bottom: 15px; margin-top: 0; width: 100%; display: none;" onclick="registerUser()" data-i18n="btn_up">Создать аккаунт ✨</button>
+            
+            <div id="authToggleBtn" onclick="toggleAuthMode()" style="color: #3498db; font-size: 15px; cursor: pointer; text-decoration: underline; font-weight: bold;">Нет аккаунта? Создать ✨</div>
+            
+            <div style="margin-top: 25px; font-size: 12px; color: #888; line-height: 1.5;">
+                Продолжая, вы соглашаетесь с <br>
+                <a href="/terms.html" target="_blank" style="color: #3498db; text-decoration: underline;">Пользовательским соглашением</a> и <br>
+                <a href="/privacy.html" target="_blank" style="color: #3498db; text-decoration: underline;">Политикой конфиденциальности</a>.
+            </div>
         </div>
     </div>
 
     <div id="screen-dashboard" class="screen">
-        <div class="dashboard-header" style="display: flex; flex-direction: column; gap: 15px; background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+        <div class="dashboard-header" style="display: flex; flex-direction: column; gap: 15px; background: white; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: 20px; box-sizing: border-box;">
             
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <h2 style="margin: 0; font-size: 20px; color: #2c3e50; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><span id="greetingTextBase">Привет, </span><span id="userNameDisplay">Имя</span>! 👋</h2>
-                
-                <div style="display: flex; gap: 5px; background: #f0f2f5; padding: 4px 8px; border-radius: 10px; flex-shrink: 0;">
-                    <button class="lang-btn" data-lang="ru" onclick="changeLang('ru')" style="background:none; border:none; cursor:pointer; font-size:16px;">🇷🇺</button>
-                    <button class="lang-btn" data-lang="en" onclick="changeLang('en')" style="background:none; border:none; cursor:pointer; font-size:16px;">🇬🇧</button>
-                    <button class="lang-btn" data-lang="kz" onclick="changeLang('kz')" style="background:none; border:none; cursor:pointer; font-size:16px;">🇰🇿</button>
-                </div>
+            <div style="display: flex; width: 100%; background: #f0f2f5; border-radius: 12px; padding: 5px; box-sizing: border-box;">
+                <button class="lang-btn" data-lang="ru" onclick="changeLang('ru')" style="flex: 1; background: none; border: none; padding: 10px 0; cursor: pointer; font-size: 15px; font-weight: bold; border-radius: 8px; color: #2c3e50;">🇷🇺 RU</button>
+                <button class="lang-btn" data-lang="en" onclick="changeLang('en')" style="flex: 1; background: none; border: none; padding: 10px 0; cursor: pointer; font-size: 15px; font-weight: bold; border-radius: 8px; color: #2c3e50;">🇬🇧 EN</button>
+                <button class="lang-btn" data-lang="kz" onclick="changeLang('kz')" style="flex: 1; background: none; border: none; padding: 10px 0; cursor: pointer; font-size: 15px; font-weight: bold; border-radius: 8px; color: #2c3e50;">🇰🇿 KZ</button>
             </div>
             
-            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <div style="background: #f0f2f5; color: #2c3e50; padding: 8px 12px; border-radius: 10px; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+            <h2 style="margin: 0; font-size: 22px; color: #2c3e50; text-align: center;"><span id="greetingTextBase">Привет, </span><span id="userNameDisplay">Имя</span>! 👋</h2>
+            
+            <button onclick="watchAdForFreeCard()" style="width: 100%; background: linear-gradient(135deg, #9b59b6, #8e44ad); color: white; border: none; border-radius: 12px; padding: 16px; cursor: pointer; font-weight: bold; font-size: 16px; box-shadow: 0 4px 10px rgba(155, 89, 182, 0.3);" data-i18n="earn_card">Заработать открытку 📺</button>
+            
+            <div style="display: flex; width: 100%; gap: 10px; box-sizing: border-box;">
+                <div style="flex: 1; background: #f8f9fa; color: #2c3e50; border: 1px solid #e9ecef; border-radius: 12px; font-weight: bold; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 0;">
                     💌 <span id="balanceDisplay">0</span>
                 </div>
-                
-                <button onclick="watchAdForFreeCard()" style="background: #9b59b6; color: white; border: none; border-radius: 10px; padding: 8px 15px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-grow: 1;" data-i18n="earn_card">Заработать открытку 📺</button>
-                
-                <button onclick="logout()" style="background: #e74c3c; color: white; border: none; border-radius: 10px; padding: 8px 15px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" data-i18n="logout">Выйти</button>
+                <button id="logoutBtn" onclick="logout()" style="flex: 1; background: #ff4757; color: white; border: none; border-radius: 12px; padding: 12px 0; cursor: pointer; font-weight: bold; font-size: 15px; box-shadow: 0 4px 10px rgba(255, 71, 87, 0.2);" data-i18n="logout">Выйти</button>
+                <button id="headerLoginBtn" onclick="showScreen('screen-auth')" style="display: none; flex: 1; background: #3498db; color: white; border: none; border-radius: 12px; padding: 12px 0; cursor: pointer; font-weight: bold; font-size: 15px; box-shadow: 0 4px 10px rgba(52, 152, 219, 0.2);">Войти ➔</button>
             </div>
-
+            
         </div>
 
         
         <h3 style="color: #333; margin-top: 0; align-self: flex-start;" data-i18n="themes_title">Для кого создаем открытку?</h3>
         <div class="themes-grid" id="themesContainer"></div>
 
-        <div class="saved-cards-section">
+        <div class="saved-cards-section" id="myCardsSection">
             <h3 style="color: #333; margin-top: 0;" data-i18n="my_cards">Мои открытки 🗂️</h3>
             <div id="savedCardsContainer"></div>
         </div>
@@ -105,35 +128,46 @@
         </div> 
     </div> 
 
-    <div class="gif-modal" id="customThemeModal" style="z-index: 105;">
-        <div class="close-modal" onclick="closeCustomThemeModal()" data-i18n="close_btn">✖ Закрыть</div>
-        <h3 style="margin-top: 0;" data-i18n="custom_design">Свой дизайн ✨</h3>
-        <div class="card-editor" style="gap: 10px;">
-            <label style="font-weight: bold; color: #555;" data-i18n="who_is_card">Кому открытка?</label>
-            <input type="text" id="customThemeName" placeholder="Например: Любимому коту 🐈">
+    <div class="gif-modal" id="customThemeModal">
+        <div class="close-modal" onclick="document.getElementById('customThemeModal').style.display='none'" style="color: #333; font-weight: bold; font-size: 16px;">✖ Закрыть</div>
+        
+        <h3 style="margin-top: 0; color: #2c3e50; font-size: 24px;" data-i18n="custom_title">Свой дизайн ✨</h3>
+
+        <div style="text-align: left; width: 100%; max-width: 400px;">
             
-            <label style="font-weight: bold; color: #555; margin-top: 10px;" data-i18n="bg_music">Музыка фона</label>
-            <button id="customMusicBtn" style="width: 100%; background: #3498db; color: white; padding: 12px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;" onclick="openMusicModal()" data-i18n="choose_music">🎵 Выбрать музыку</button>
+            <label style="font-weight: bold; color: #2c3e50; display: block; margin-bottom: 8px; font-size: 15px;" data-i18n="who_for">Кому открытка?</label>
+            <input type="text" id="customThemeName" data-i18n="who_ph" placeholder="Например: Любимому коту 🐈" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; margin-bottom: 20px; background: #f8f9fa; color: #333;">
             
-            <label style="font-weight: bold; color: #555; margin-top: 10px;" data-i18n="bg_emoji">Эмодзи для фона (1-2 шт)</label>
-            <input type="text" id="customThemeEmoji" placeholder="Например: 🐾" maxlength="4" oninput="this.value = this.value.replace(/[a-zA-Zа-яА-Я0-9\s.,!?]/g, '')">
+            <label style="font-weight: bold; color: #2c3e50; display: block; margin-bottom: 8px; font-size: 15px;" data-i18n="bg_music">Музыка фона</label>
+            <button onclick="openMusicModal()" id="customMusicBtn" data-i18n="btn_choose_music" style="width: 100%; background: #3498db; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 16px; margin-bottom: 20px; cursor: pointer; box-shadow: 0 4px 10px rgba(52, 152, 219, 0.2);">🎵 Выбрать музыку</button>
+
+            <label style="font-weight: bold; color: #2c3e50; display: block; margin-bottom: 8px; font-size: 15px;" data-i18n="bg_emoji">Эмодзи для фона (1 шт)</label>
             
-            <label style="font-weight: bold; color: #555; margin-top: 10px;" data-i18n="bg_color">Цвет фона</label>
-            <div style="display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap;" id="colorPresetsContainer">
-                <div style="width: 35px; height: 35px; border-radius: 50%; cursor: pointer; background: #ffb6c1; border: 1px solid rgba(0,0,0,0.1);" onclick="setCustomColor('#ffb6c1')"></div>
-                <div style="width: 35px; height: 35px; border-radius: 50%; cursor: pointer; background: #a8e6cf; border: 1px solid rgba(0,0,0,0.1);" onclick="setCustomColor('#a8e6cf')"></div>
-                <div style="width: 35px; height: 35px; border-radius: 50%; cursor: pointer; background: #ffd3b6; border: 1px solid rgba(0,0,0,0.1);" onclick="setCustomColor('#ffd3b6')"></div>
-                <div style="width: 35px; height: 35px; border-radius: 50%; cursor: pointer; background: #a6c1ee; border: 1px solid rgba(0,0,0,0.1);" onclick="setCustomColor('#a6c1ee')"></div>
-                <div style="width: 35px; height: 35px; border-radius: 50%; cursor: pointer; background: #fdfd96; border: 1px solid rgba(0,0,0,0.1);" onclick="setCustomColor('#fdfd96')"></div>
-                <div style="position: relative; width: 35px; height: 35px; border-radius: 50%; overflow: hidden; border: 2px dashed #ccc; cursor: pointer; display: flex; align-items: center; justify-content: center; background: #fff;" title="Свой цвет">
+            
+            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
+                <button class="emoji-preset-btn" onclick="setPresetEmoji('✨', this)" style="width: 45px; height: 45px; border-radius: 10px; border: 2px solid #2c3e50; background: #f0f2f5; font-size: 20px; cursor: pointer; padding: 0;">✨</button>
+                <button class="emoji-preset-btn" onclick="setPresetEmoji('💖', this)" style="width: 45px; height: 45px; border-radius: 10px; border: 2px solid transparent; background: #f0f2f5; font-size: 20px; cursor: pointer; padding: 0;">💖</button>
+                <button class="emoji-preset-btn" onclick="setPresetEmoji('🌸', this)" style="width: 45px; height: 45px; border-radius: 10px; border: 2px solid transparent; background: #f0f2f5; font-size: 20px; cursor: pointer; padding: 0;">🌸</button>
+                <button class="emoji-preset-btn" onclick="setPresetEmoji('🐾', this)" style="width: 45px; height: 45px; border-radius: 10px; border: 2px solid transparent; background: #f0f2f5; font-size: 20px; cursor: pointer; padding: 0;">🐾</button>
+                
+                <input type="text" id="customEmojiInput" placeholder="Свой" oninput="clearPresetEmojis(this)" style="width: 60px; height: 45px; border-radius: 10px; border: 1px solid #ccc; text-align: center; font-size: 16px; background: #fff; color: #333;" value="✨">
+            </div>
+            <label style="font-weight: bold; color: #2c3e50; display: block; margin-bottom: 8px; font-size: 15px;" data-i18n="bg_color">Цвет фона</label>
+            <div style="display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap;">
+                <div class="color-circle" style="width: 40px; height: 40px; border-radius: 50%; background: #ffb6c1; cursor: pointer; border: 2px solid #2c3e50;" onclick="setCustomColor('#ffb6c1', this)"></div>
+                <div class="color-circle" style="width: 40px; height: 40px; border-radius: 50%; background: #a8e6cf; cursor: pointer; border: 2px solid transparent;" onclick="setCustomColor('#a8e6cf', this)"></div>
+                <div class="color-circle" style="width: 40px; height: 40px; border-radius: 50%; background: #ffd3b6; cursor: pointer; border: 2px solid transparent;" onclick="setCustomColor('#ffd3b6', this)"></div>
+                <div class="color-circle" style="width: 40px; height: 40px; border-radius: 50%; background: #a1c4fd; cursor: pointer; border: 2px solid transparent;" onclick="setCustomColor('#a1c4fd', this)"></div>
+                <div class="color-circle" style="width: 40px; height: 40px; border-radius: 50%; background: #fdfd96; cursor: pointer; border: 2px solid transparent;" onclick="setCustomColor('#fdfd96', this)"></div>
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: #fff; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 20px; position: relative; overflow: hidden;">
+                    <input type="color" value="#ffb6c1" style="opacity: 0; position: absolute; width: 100%; height: 100%; cursor: pointer;" onchange="setCustomColor(this.value, this.parentElement)">
                     🎨
-                    <input type="color" onchange="setCustomColor(this.value)" style="opacity: 0; position: absolute; top: -10px; left: -10px; width: 200%; height: 200%; cursor: pointer;">
                 </div>
             </div>
-            <div style="margin-top: 5px; color: #888; font-family: monospace; font-size: 14px;">Выбран: <span id="customColorHex">#ffb6c1</span></div>
-
-            <button class="generate-btn" style="margin-top: 20px;" onclick="startCustomTheme()" data-i18n="btn_create">Создать ➔</button>
+            <input type="hidden" id="selectedColorValue" value="#ffb6c1">
         </div>
+
+        <button onclick="document.getElementById('customThemeModal').style.display='none'; startBuilder(document.getElementById('selectedColorValue').value, document.getElementById('customEmojiInput').value, customSelectedMusicUrl, document.getElementById('customThemeName').value)" data-i18n="btn_create" style="width: 100%; max-width: 400px; background: #ff4757; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; font-size: 18px; cursor: pointer; box-shadow: 0 4px 15px rgba(255,71,87,0.3);">Создать ➔</button>
     </div>
 
     <div class="gif-modal" id="gifModal" style="z-index: 105;">
@@ -148,17 +182,15 @@
     </div>
 
     <div class="gif-modal" id="musicModal" style="z-index: 106;">
-        <div class="close-modal" onclick="closeMusicModal()" data-i18n="close_btn">✖ Закрыть</div>
-        <h3 style="margin-top: 0;" data-i18n="music_title">Выбери музыку 🎵</h3>
+        <div class="close-modal" onclick="closeMusicModal()">✖ Закрыть</div>
+        <h3 style="margin-top: 0;">Выбери музыку 🎵</h3>
         <div class="custom-url-box" style="margin-bottom: 15px;">
-            <input type="text" id="musicSearchInput" data-i18n="music_search_ph" placeholder="Найти песню..." onkeypress="if(event.key === 'Enter') searchOnlineMusic()">
-            <button onclick="searchOnlineMusic()" style="background: #9b59b6;" data-i18n="music_search_btn">Поиск 🔍</button>
+            <input type="text" id="musicSearchInput" placeholder="Найти песню..." onkeypress="if(event.key === 'Enter') searchOnlineMusic()">
+            <button onclick="searchOnlineMusic()" style="background: #9b59b6;">Поиск 🔍</button>
         </div>
-        <div id="musicTags" class="tags-container"></div>
-        <div class="custom-url-box" style="margin-top: 5px; margin-bottom: 10px;">
-            <input type="text" id="customMusicUrlInput" data-i18n="music_url_ph" placeholder="Ссылка на .mp3 файл">
-            <button id="testMusicBtn" onclick="useMusicCustomUrl()" style="min-width: 80px;" data-i18n="btn_ok">Ок</button>
-        </div>
+        
+        <div id="musicTags" class="tags-container" style="display: none;"></div>
+        
         <div id="musicList" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-bottom: 20px;"></div>
         <audio id="previewPlayer" src=""></audio>
     </div>
@@ -205,11 +237,11 @@
 
     <div id="toastContainer" class="toast-container"></div>
 
-    <script src="lang.js?v=6"></script>
+    <script src="lang.js?v=23"></script>
     <script src="gifs.js"></script>
     <script src="music.js"></script>
     <script src="api_music.js"></script> 
-    <script src="generator.js?v=9"></script>
-    <script src="builder.js?v=9"></script>
+    <script src="generator.js?v=23"></script>
+    <script src="builder.js?v=23"></script>
 </body>
 </html>
