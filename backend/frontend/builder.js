@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedUser = localStorage.getItem('otkritka_username');
     
     if (token && savedUser) {
-        // АВТОРИЗОВАННЫЙ ПОЛЬЗОВАТЕЛЬ
+        // АВТОРИЗОВАННЫЙ ПОЛЬЗОВАТЕЛЬ (Видит свои открытки)
         currentUser = savedUser;
         const nameDisplay = document.getElementById('userNameDisplay');
         if(nameDisplay) nameDisplay.innerText = currentUser;
@@ -36,27 +36,38 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('logoutBtn').style.display = 'block';
         document.getElementById('headerLoginBtn').style.display = 'none';
         document.getElementById('myCardsSection').style.display = 'block';
+        document.querySelector('#myCardsSection h3').innerText = window.t('my_cards') || "Мои открытки 🗂️";
         
         fetchUserProfile(); 
         renderSavedCards();
     } else {
-        // ГОСТЬ (Для модераторов Яндекса)
+        // ГОСТЬ (Видит примеры)
         currentUser = null;
         const nameDisplay = document.getElementById('userNameDisplay');
         if(nameDisplay) nameDisplay.innerText = window.t('guest') || "Гость";
         
         document.getElementById('logoutBtn').style.display = 'none';
         document.getElementById('headerLoginBtn').style.display = 'block';
-        document.getElementById('myCardsSection').style.display = 'none'; // Прячем чужие открытки
+        
+        // Показываем примеры в блоке открыток
+        document.getElementById('myCardsSection').style.display = 'block';
+        document.querySelector('#myCardsSection h3').innerHTML = "Примеры открыток 👀 <span style='font-size:12px; font-weight:normal; color:#888;'>(Для гостей)</span>";
+        
+        const container = document.getElementById('savedCardsContainer');
+        container.innerHTML = `
+            <div class="saved-card-item" onclick="window.open('/view.html?id=onTpg', '_blank')" style="cursor:pointer; background: #fff8f8; border: 1px dashed #ff9ff3;">
+                <div class="saved-card-preview" style="background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);"><div class="saved-card-emoji">🌸</div></div>
+                <div class="saved-card-info"><div class="saved-card-name" style="color:#ff4757;">Любимой маме (Пример)</div><p style="color:#888; font-size:12px;">Нажми, чтобы посмотреть</p></div>
+            </div>
+            <div class="saved-card-item" onclick="window.open('/view.html?id=onTpg', '_blank')" style="cursor:pointer; background: #fff8f8; border: 1px dashed #f6e58d;">
+                <div class="saved-card-preview" style="background: linear-gradient(120deg, #f6d365 0%, #fda085 100%);"><div class="saved-card-emoji">🎈</div></div>
+                <div class="saved-card-info"><div class="saved-card-name" style="color:#e15f41;">С Днем Рождения (Пример)</div><p style="color:#888; font-size:12px;">Нажми, чтобы посмотреть</p></div>
+            </div>
+        `;
     }
     
-    // ВАЖНО: Теперь ВСЕГДА сначала показываем дашборд с контентом!
     showScreen('screen-dashboard');
-    
-    setTimeout(() => {
-        renderThemes();
-        renderCategoryButtons();
-    }, 100);
+    setTimeout(() => { renderThemes(); renderCategoryButtons(); }, 100);
 });
 
 // --- СИСТЕМА УВЕДОМЛЕНИЙ И ПОДТВЕРЖДЕНИЙ ---
@@ -137,6 +148,14 @@ async function registerUser() {
             localStorage.setItem('otkritka_username', user);
             currentUser = user; 
             document.getElementById('userNameDisplay').innerText = currentUser;
+            
+            // --- МГНОВЕННОЕ ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ---
+            document.getElementById('logoutBtn').style.display = 'block';
+            document.getElementById('headerLoginBtn').style.display = 'none';
+            document.getElementById('myCardsSection').style.display = 'block';
+            const cardsTitle = document.querySelector('#myCardsSection h3');
+            if(cardsTitle) cardsTitle.innerText = window.t('my_cards') || "Мои открытки 🗂️";
+            
             await fetchUserProfile(); showScreen('screen-dashboard'); renderSavedCards();
         }
     } catch (e) { showToast(window.t('toast_net_err') || "Ошибка сети. Бэкенд запущен?", "error"); }
@@ -158,6 +177,14 @@ async function loginUser() {
             localStorage.setItem('otkritka_username', user);
             currentUser = user; 
             document.getElementById('userNameDisplay').innerText = currentUser;
+            
+            // --- МГНОВЕННОЕ ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ---
+            document.getElementById('logoutBtn').style.display = 'block';
+            document.getElementById('headerLoginBtn').style.display = 'none';
+            document.getElementById('myCardsSection').style.display = 'block';
+            const cardsTitle = document.querySelector('#myCardsSection h3');
+            if(cardsTitle) cardsTitle.innerText = window.t('my_cards') || "Мои открытки 🗂️";
+
             await fetchUserProfile(); showScreen('screen-dashboard'); renderSavedCards();
         } else {
             showToast(window.t('toast_wrong_cred') || "❌ Неверный логин или пароль", "error");
@@ -169,7 +196,7 @@ function logout() {
     localStorage.removeItem('otkritka_token');
     localStorage.removeItem('otkritka_username');
     currentUser = null;
-    location.reload();
+    location.reload(); // Перезагружаем страницу, чтобы гостевой режим включился сам
 }
 
 function showScreen(screenId) {
@@ -182,7 +209,6 @@ function showScreen(screenId) {
     }
 }
 
-// --- БАЛАНС И МАГАЗИН ---
 // --- БАЛАНС ---
 async function fetchUserProfile() {
     const token = localStorage.getItem('otkritka_token');
@@ -307,35 +333,27 @@ function renderThemes() {
     if(!container) return;
     container.innerHTML = '';
     
+    // 1. ДОБАВЛЯЕМ "СВОЙ ДИЗАЙН" (Без блокировок)
     const customBtn = document.createElement('button');
     customBtn.className = 'theme-tile';
-    customBtn.innerHTML = window.t('theme_custom') || '+ Свой дизайн 🎨';
+    customBtn.innerHTML = window.t ? window.t('theme_custom') : '+ Свой дизайн 🎨';
     customBtn.style.background = 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)';
     customBtn.style.color = '#333';
     customBtn.onclick = () => {
-        // ПРОВЕРКА НА ГОСТЯ
-        if (!currentUser) { 
-            showScreen('screen-auth'); 
-            return showToast("Для создания открытки нужно войти! 🔐", "error"); 
-        }
         startBuilder('#f0f2f5', '', '', ''); 
         document.getElementById('customThemeModal').style.display = 'flex';
     };
     container.appendChild(customBtn);
 
+    // 2. ДОБАВЛЯЕМ ОСТАЛЬНЫЕ ШАБЛОНЫ (Без блокировок)
     cardThemes.forEach(theme => {
         const btn = document.createElement('button');
         btn.className = 'theme-tile';
-        const translatedName = window.t('theme_' + theme.id) || theme.name;
-        btn.innerText = translatedName;
+        const translatedName = window.t ? window.t('theme_' + theme.id) : theme.name;
+        btn.innerText = translatedName || theme.name;
         btn.style.background = theme.bg;
         btn.onclick = () => {
-            // ПРОВЕРКА НА ГОСТЯ
-            if (!currentUser) { 
-                showScreen('screen-auth'); 
-                return showToast("Для создания открытки нужно войти! 🔐", "error"); 
-            }
-            startBuilder(theme.bg, theme.emoji, theme.music, translatedName);
+            startBuilder(theme.bg, theme.emoji, theme.music, translatedName || theme.name);
         };
         container.appendChild(btn);
     });
@@ -629,12 +647,21 @@ function useMusicCustomUrl() {
 
 // --- ФИНАЛ И ОТПРАВКА ---
 function finishCard() {
+    // 1. ЕСЛИ ЭТО ГОСТЬ - ОСТАНАВЛИВАЕМ И ОТПРАВЛЯЕМ НА РЕГИСТРАЦИЮ
+    if (!currentUser) {
+        showToast("Для сохранения и отправки открытки нужно войти в аккаунт! 🔐", "error");
+        showScreen('screen-auth');
+        return; 
+    }
+
+    // 2. Если авторизован - продолжаем сохранение
     const nInput = document.getElementById('cardNameInput');
     const finalName = nInput ? nInput.value.trim() : currentCardName;
     if (!finalName) { showToast(window.t('toast_need_name') || "Напишите название (на 1-й карте)!", "error"); currentIndex = 0; updateUI(); return; }
     if (slides.some(slide => !slide.img)) { showToast(window.t('toast_need_img') || "Выберите все картинки!", "error"); return; }
     document.getElementById('finishModal').style.display = 'flex';
 }
+
 function goToDashboard() { document.getElementById('finishModal').style.display = 'none'; showScreen('screen-dashboard'); renderSavedCards(); }
 
 async function shareCard() {
